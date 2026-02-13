@@ -1,110 +1,107 @@
-# DEPLOY.md — Деплой TaskTracker
+# DEPLOY.md — Деплой TaskTracker на VPS (kawdle.ru)
 
-## Требования к VPS
+Пошаговая инструкция для запуска production-версии на VPS с HTTPS.
 
-- **ОС**: Ubuntu 22.04+ (или другой Linux)
-- **RAM**: минимум 2 GB
-- **Диск**: минимум 10 GB
-- **Порты**: 80, 443, 3000 (внутренний)
-- **Домен**: `kawdle.ru` — A-запись указывает на IP сервера
+---
 
-## 1. Установка Docker и Docker Compose
+## Требования
+
+- VPS: Ubuntu 22.04+, минимум 2 GB RAM, 10 GB диск
+- Домен `kawdle.ru` — A-запись указывает на IP вашего VPS
+- Открытые порты: **80**, **443**
+
+---
+
+## Шаг 1. Подготовка VPS
 
 ```bash
+# Подключаемся к серверу
+ssh root@<IP-вашего-VPS>
+
 # Обновляем систему
 sudo apt update && sudo apt upgrade -y
 
-# Установка Docker
+# Устанавливаем Docker
 curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker $USER
 
-# Docker Compose (уже встроен в Docker 20.10+)
-docker compose version
+# Устанавливаем Git
+sudo apt install -y git
 
-# Перезайти в сессию (для группы docker)
+# Перезаходим, чтобы docker работал без sudo
 exit
+ssh root@<IP-вашего-VPS>
+
+# Проверяем
+docker compose version
 ```
 
-## 2. Клонирование проекта
+---
+
+## Шаг 2. Клонирование проекта
 
 ```bash
-git clone <your-repo-url> /opt/tasktracker
+git clone <url-вашего-репо> /opt/tasktracker
 cd /opt/tasktracker
 ```
 
-## 3. Настройка .env
+---
+
+## Шаг 3. Настройка .env
 
 ```bash
 cp .env.example .env
 nano .env
 ```
 
-Обязательно измените:
+Заполните **все** значения:
 
-| Переменная | Описание |
-|---|---|
-| `POSTGRES_PASSWORD` | Пароль PostgreSQL |
-| `NEXTAUTH_SECRET` | Случайная строка 32+ символов (`openssl rand -base64 32`) |
-| `NEXTAUTH_URL` | `https://kawdle.ru` |
-| `MINIO_ACCESS_KEY` | Ключ доступа MinIO |
-| `MINIO_SECRET_KEY` | Секретный ключ MinIO (минимум 8 символов) |
-| `CRON_SECRET` | Секрет для cron-эндпоинтов (`openssl rand -hex 16`) |
-| `SEED_EMAIL` | Email для входа |
-| `SEED_PASSWORD` | Пароль для входа |
+```env
+# Database
+DATABASE_URL="postgresql://postgres:STRONG_DB_PASSWORD@postgres:5432/tasktracker?schema=public"
+POSTGRES_PASSWORD=STRONG_DB_PASSWORD
 
-## 4. Запуск (dev-режим без nginx)
+# NextAuth
+NEXTAUTH_URL="https://kawdle.ru"
+NEXTAUTH_SECRET=<сгенерируйте: openssl rand -base64 32>
 
-```bash
-# Запуск БД и MinIO
-docker compose up -d postgres minio
+# MinIO
+MINIO_ENDPOINT=minio
+MINIO_PORT=9000
+MINIO_ACCESS_KEY=<придумайте>
+MINIO_SECRET_KEY=<придумайте, минимум 8 символов>
+MINIO_BUCKET=attachments
+MINIO_USE_SSL=false
 
-# Установить зависимости
-npm install
+# Cron
+CRON_SECRET=<сгенерируйте: openssl rand -hex 16>
 
-# Применить миграции
-npx prisma db push
-
-# Посеять данные
-npx prisma db seed
-
-# Запустить dev-сервер
-npm run dev
+# Логин в приложение
+SEED_EMAIL=your-email@example.com
+SEED_PASSWORD=<придумайте надёжный пароль>
 ```
 
-Открыть: http://localhost:3000
+> ⚠️ **Важно**: `POSTGRES_PASSWORD` в `DATABASE_URL` и отдельной переменной должны совпадать.
 
-## 5. Запуск production
+---
 
-```bash
-# Сборка и запуск всех сервисов
-docker compose up -d --build
+## Шаг 4. Получение SSL-сертификата (Let's Encrypt)
 
-# Применить миграции
-docker compose exec app npx prisma db push
-docker compose exec app npx prisma db seed
-```
-
-## 6. Настройка Nginx + домен
-
-1. В `nginx/nginx.conf` уже прописан домен `kawdle.ru`
-2. Убедитесь, что DNS A-запись `kawdle.ru` указывает на IP вашего VPS
+Сначала нужно получить сертификат **до** запуска полного nginx. Для этого временно запустим nginx только на порту 80:
 
 ```bash
-# Запуск с nginx
-docker compose --profile production up -d
-```
+# Создаём директории для certbot
+mkdir -p nginx/certs
 
-## 7. HTTPS через Let's Encrypt
+# Запускаем только postgres, minio и nginx (без SSL блока)
+# Временно закомментируйте блок server :443 в nginx/nginx.conf:
+nano nginx/nginx.conf
+# Закомментируйте строки 28-75 (весь блок "# HTTPS server")
 
-### Первоначальная установка сертификата
+# Запускаем
+docker compose --profile production up -d postgres minio nginx
 
-```bash
-# Временный nginx без SSL (для ACME challenge)
-# Замените в nginx.conf: закомментируйте блок server :443
-
-docker compose --profile production up -d nginx
-
-# Получить сертификат
+# Получаем сертификат
 docker compose --profile production run --rm certbot certonly \
   --webroot \
   --webroot-path=/var/www/certbot \
@@ -113,78 +110,140 @@ docker compose --profile production run --rm certbot certonly \
   --agree-tos \
   --no-eff-email
 
-# Раскомментировать блок :443 в nginx.conf
-# Перезапустить nginx
-docker compose --profile production restart nginx
+# Раскомментируйте блок :443 обратно
+nano nginx/nginx.conf
+
+# Остановите всё
+docker compose --profile production down
 ```
 
-### Автообновление сертификата (cron)
+---
+
+## Шаг 5. Запуск production
 
 ```bash
-# Добавить в crontab:
-0 0 1 * * docker compose --profile production run --rm certbot renew && docker compose --profile production restart nginx
+cd /opt/tasktracker
+
+# Собираем и запускаем все сервисы
+docker compose --profile production up -d --build
+
+# Ждём ~30 секунд пока всё поднимется, затем:
+
+# Применяем схему БД
+docker compose exec app npx prisma db push
+
+# Создаём пользователя и дефолтные данные
+docker compose exec app npx prisma db seed
 ```
 
-## 8. Настройка Cron-задач
+Проверяем:
+```bash
+# Health check
+curl https://kawdle.ru/api/health
+# → {"status":"ok","timestamp":"..."}
+
+# Или просто откройте в браузере: https://kawdle.ru
+```
+
+---
+
+## Шаг 6. Настройка Cron-задач
 
 ```bash
-# Открыть crontab
 crontab -e
-
-# Добавить:
-
-# Генерация повторяющихся задач (ежедневно в 6:00 UTC)
-0 6 * * * curl -s -X POST http://localhost:3000/api/cron/recurrence -H "Authorization: Bearer YOUR_CRON_SECRET" > /dev/null
-
-# Очистка корзины (по воскресеньям в 3:00 UTC)
-0 3 * * 0 curl -s -X POST http://localhost:3000/api/cron/cleanup -H "Authorization: Bearer YOUR_CRON_SECRET" > /dev/null
 ```
 
-Замените `YOUR_CRON_SECRET` на значение из `.env`.
+Добавьте строки (замените `YOUR_CRON_SECRET` на значение из `.env`):
 
-## 9. Бэкапы
+```cron
+# Генерация повторяющихся задач — каждый день в 06:00 UTC
+0 6 * * * curl -s -X POST http://localhost:3000/api/cron/recurrence -H "Authorization: Bearer YOUR_CRON_SECRET" > /dev/null 2>&1
 
-### PostgreSQL
+# Очистка корзины — каждое воскресенье в 03:00 UTC
+0 3 * * 0 curl -s -X POST http://localhost:3000/api/cron/cleanup -H "Authorization: Bearer YOUR_CRON_SECRET" > /dev/null 2>&1
+
+# Автообновление SSL — 1-го числа каждого месяца
+0 0 1 * * cd /opt/tasktracker && docker compose --profile production run --rm certbot renew && docker compose --profile production restart nginx > /dev/null 2>&1
+
+# Бэкап PostgreSQL — каждый день в 02:00 UTC
+0 2 * * * docker compose -f /opt/tasktracker/docker-compose.yml exec -T postgres pg_dump -U postgres tasktracker | gzip > /opt/backups/pg_$(date +\%Y\%m\%d).sql.gz 2>/dev/null
+```
+
+Создайте папку для бэкапов:
+```bash
+mkdir -p /opt/backups
+```
+
+---
+
+## Шаг 7. Обновление приложения
+
+При пуше нового кода:
 
 ```bash
-# Бэкап
-docker compose exec postgres pg_dump -U postgres tasktracker > backup_$(date +%Y%m%d).sql
-
-# Восстановление
-docker compose exec -T postgres psql -U postgres tasktracker < backup_YYYYMMDD.sql
+cd /opt/tasktracker
+git pull
+docker compose --profile production up -d --build
+docker compose exec app npx prisma db push  # если изменилась схема
 ```
 
-### MinIO
+---
 
-```bash
-# Бэкап (копирование volume)
-docker run --rm -v myboroda_tasks_minio_data:/data -v $(pwd)/backups:/backup alpine tar czf /backup/minio_$(date +%Y%m%d).tar.gz /data
-
-# Восстановление
-docker run --rm -v myboroda_tasks_minio_data:/data -v $(pwd)/backups:/backup alpine tar xzf /backup/minio_YYYYMMDD.tar.gz -C /
-```
-
-### Автобэкап (cron)
-
-```bash
-# Ежедневный бэкап PostgreSQL в 2:00 UTC
-0 2 * * * docker compose exec -T postgres pg_dump -U postgres tasktracker | gzip > /opt/backups/pg_$(date +\%Y\%m\%d).sql.gz
-```
-
-## 10. Healthcheck
-
-```bash
-curl http://localhost:3000/api/health
-# Ожидаемый ответ: {"status":"ok","timestamp":"..."}
-```
-
-## Команды
+## Полезные команды
 
 | Команда | Описание |
 |---|---|
-| `docker compose up -d` | Запуск dev (без nginx) |
-| `docker compose --profile production up -d` | Запуск prod (с nginx) |
+| `docker compose --profile production up -d` | Запуск prod |
+| `docker compose --profile production down` | Остановка |
 | `docker compose logs -f app` | Логи приложения |
-| `docker compose down` | Остановка |
-| `docker compose down -v` | Остановка + удаление volumes |
-| `npx prisma studio` | GUI для БД |
+| `docker compose logs -f nginx` | Логи nginx |
+| `docker compose exec app npx prisma studio` | GUI для БД |
+| `docker compose --profile production restart` | Перезапуск всего |
+
+---
+
+## Бэкапы
+
+### PostgreSQL
+```bash
+# Бэкап
+docker compose exec -T postgres pg_dump -U postgres tasktracker > backup.sql
+
+# Восстановление
+docker compose exec -T postgres psql -U postgres tasktracker < backup.sql
+```
+
+### MinIO (файлы вложений)
+```bash
+# Бэкап
+docker run --rm \
+  -v myboroda_tasks_minio_data:/data \
+  -v /opt/backups:/backup \
+  alpine tar czf /backup/minio_$(date +%Y%m%d).tar.gz /data
+
+# Восстановление
+docker run --rm \
+  -v myboroda_tasks_minio_data:/data \
+  -v /opt/backups:/backup \
+  alpine tar xzf /backup/minio_YYYYMMDD.tar.gz -C /
+```
+
+---
+
+## Устранение проблем
+
+```bash
+# Проверить что все контейнеры запущены
+docker compose --profile production ps
+
+# Проверить логи если что-то не работает
+docker compose logs app --tail 50
+docker compose logs nginx --tail 50
+docker compose logs postgres --tail 50
+
+# Перезапустить один сервис
+docker compose restart app
+
+# Пересобрать приложение
+docker compose --profile production up -d --build app
+```
