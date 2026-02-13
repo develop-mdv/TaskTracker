@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { ListView } from "./list-view";
 import { KanbanBoard } from "./kanban-board";
@@ -26,17 +26,28 @@ export function TaskView({
     showViewToggle = true,
 }: TaskViewProps) {
     const [showCreate, setShowCreate] = useState(false);
+    const [localViewMode, setLocalViewMode] = useState<string | null>(null);
 
     const { data: viewPref } = trpc.viewPreferences.get.useQuery({
         section: section || undefined,
         projectId: projectId || undefined,
     });
 
+    const utils = trpc.useUtils();
+
     const setViewPref = trpc.viewPreferences.set.useMutation({
-        onSuccess: () => { },
+        onSuccess: () => {
+            utils.viewPreferences.get.invalidate();
+        },
     });
 
-    const viewMode = (viewPref as { viewMode: string } | undefined)?.viewMode ?? "list";
+    // Sync local state when server data arrives
+    const serverViewMode = (viewPref as { viewMode: string } | undefined)?.viewMode ?? "list";
+    useEffect(() => {
+        setLocalViewMode(null);
+    }, [serverViewMode]);
+
+    const viewMode = localViewMode ?? serverViewMode;
 
     const { data: tasks = [], isLoading: tasksLoading } = trpc.tasks.list.useQuery({
         section: section as "inbox" | undefined,
@@ -46,20 +57,18 @@ export function TaskView({
         deleted,
     });
 
-    const { data: columns = [] } = trpc.columns.list.useQuery(
-        {
-            projectId: projectId || undefined,
-            section: section || undefined,
-        },
-        { enabled: viewMode === "kanban" }
-    );
+    // Always fetch columns so kanban switch is instant
+    const { data: columns = [] } = trpc.columns.list.useQuery({
+        projectId: projectId || undefined,
+        section: section || undefined,
+    });
 
-    const toggleView = () => {
-        const newMode = viewMode === "list" ? "kanban" : "list";
+    const handleToggle = (mode: "list" | "kanban") => {
+        setLocalViewMode(mode);
         setViewPref.mutate({
             section: section || undefined,
             projectId: projectId || undefined,
-            viewMode: newMode,
+            viewMode: mode,
         });
     };
 
@@ -73,31 +82,19 @@ export function TaskView({
                     {showViewToggle && !archived && !deleted && (
                         <div className="flex bg-slate-800 rounded-lg p-0.5">
                             <button
-                                onClick={() =>
-                                    setViewPref.mutate({
-                                        section: section || undefined,
-                                        projectId: projectId || undefined,
-                                        viewMode: "list",
-                                    })
-                                }
+                                onClick={() => handleToggle("list")}
                                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${viewMode === "list"
-                                        ? "bg-indigo-600 text-white"
-                                        : "text-slate-400 hover:text-white"
+                                    ? "bg-indigo-600 text-white"
+                                    : "text-slate-400 hover:text-white"
                                     }`}
                             >
                                 Список
                             </button>
                             <button
-                                onClick={() =>
-                                    setViewPref.mutate({
-                                        section: section || undefined,
-                                        projectId: projectId || undefined,
-                                        viewMode: "kanban",
-                                    })
-                                }
+                                onClick={() => handleToggle("kanban")}
                                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${viewMode === "kanban"
-                                        ? "bg-indigo-600 text-white"
-                                        : "text-slate-400 hover:text-white"
+                                    ? "bg-indigo-600 text-white"
+                                    : "text-slate-400 hover:text-white"
                                     }`}
                             >
                                 Канбан

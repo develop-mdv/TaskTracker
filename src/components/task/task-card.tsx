@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo } from "react";
 import { trpc } from "@/lib/trpc";
 
 interface Task {
@@ -31,7 +31,7 @@ const PRIORITIES = [
     { value: 4, label: "🔥", color: "text-red-400", bg: "bg-red-500/10" },
 ];
 
-export function TaskCard({
+export const TaskCard = memo(function TaskCard({
     task,
     onClick,
     isDragging,
@@ -90,8 +90,8 @@ export function TaskCard({
                             }
                         }}
                         className={`mt-0.5 w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition ${isCompleted
-                                ? "border-green-500 bg-green-500/20 text-green-400"
-                                : "border-slate-600 hover:border-indigo-500"
+                            ? "border-green-500 bg-green-500/20 text-green-400"
+                            : "border-slate-600 hover:border-indigo-500"
                             }`}
                     >
                         {isCompleted && (
@@ -124,8 +124,8 @@ export function TaskCard({
                         {task.dueDate && (
                             <span
                                 className={`text-xs px-2 py-0.5 rounded-full ${isOverdue
-                                        ? "bg-red-500/10 text-red-400"
-                                        : "bg-slate-700/50 text-slate-400"
+                                    ? "bg-red-500/10 text-red-400"
+                                    : "bg-slate-700/50 text-slate-400"
                                     }`}
                             >
                                 {formatDate(task.dueDate)}
@@ -167,4 +167,4 @@ export function TaskCard({
             </div>
         </div>
     );
-}
+});

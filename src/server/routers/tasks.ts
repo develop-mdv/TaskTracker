@@ -67,7 +67,6 @@ export const tasksRouter = router({
                 include: {
                     project: { select: { id: true, name: true, color: true } },
                     boardColumn: { select: { id: true, name: true, color: true } },
-                    attachments: { select: { id: true, filename: true, mimeType: true, size: true } },
                     _count: { select: { attachments: true } },
                 },
             });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useCallback, memo } from "react";
 import {
     DndContext,
     DragOverlay,
@@ -10,15 +10,15 @@ import {
     useSensors,
     DragStartEvent,
     DragEndEvent,
-    DragOverEvent,
 } from "@dnd-kit/core";
 import {
     SortableContext,
     verticalListSortingStrategy,
+    horizontalListSortingStrategy,
     useSortable,
+    arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useDroppable } from "@dnd-kit/core";
 import { TaskCard } from "../task/task-card";
 import { TaskDetailDrawer } from "../task/task-detail-drawer";
 import { trpc } from "@/lib/trpc";
@@ -45,10 +45,11 @@ interface Column {
     id: string;
     name: string;
     color?: string | null;
+    position?: number;
     _count?: { tasks: number };
 }
 
-function SortableTaskItem({
+const SortableTaskItem = memo(function SortableTaskItem({
     task,
     onSelect,
 }: {
@@ -69,27 +70,43 @@ function SortableTaskItem({
             <TaskCard task={task} onClick={() => onSelect(task.id)} />
         </div>
     );
-}
+});
 
-function KanbanColumn({
+const KanbanColumn = memo(function KanbanColumn({
     column,
     tasks,
     onSelectTask,
     onAddTask,
-    onEditColumn,
     onDeleteColumn,
+    onMoveLeft,
+    onMoveRight,
+    isFirst,
+    isLast,
 }: {
     column: Column;
     tasks: Task[];
     onSelectTask: (id: string) => void;
     onAddTask: (columnId: string) => void;
-    onEditColumn: (column: Column) => void;
     onDeleteColumn: (columnId: string) => void;
+    onMoveLeft: () => void;
+    onMoveRight: () => void;
+    isFirst: boolean;
+    isLast: boolean;
 }) {
-    const { setNodeRef, isOver } = useDroppable({
-        id: `column-${column.id}`,
-        data: { type: "column", columnId: column.id },
-    });
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: `col-${column.id}`, data: { type: "column", columnId: column.id } });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+    };
 
     const [editingName, setEditingName] = useState(false);
     const [name, setName] = useState(column.name);
@@ -99,12 +116,24 @@ function KanbanColumn({
     return (
         <div
             ref={setNodeRef}
-            className={`flex-shrink-0 w-72 bg-slate-850 rounded-xl transition-colors ${isOver ? "bg-slate-800/80 ring-2 ring-indigo-500/30" : "bg-slate-900/50"
+            style={style}
+            className={`flex-shrink-0 w-72 rounded-xl transition-colors ${isDragging ? "ring-2 ring-indigo-500/50 bg-slate-800/80" : "bg-slate-900/50"
                 }`}
         >
             {/* Column header */}
             <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-700/30">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
+                    {/* Drag handle */}
+                    <button
+                        {...attributes}
+                        {...listeners}
+                        className="cursor-grab active:cursor-grabbing p-0.5 rounded text-slate-600 hover:text-slate-400 transition"
+                        title="Перетащить колонку"
+                    >
+                        <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
+                        </svg>
+                    </button>
                     <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: column.color || "#64748b" }} />
                     {editingName ? (
                         <input
@@ -138,7 +167,30 @@ function KanbanColumn({
                     <span className="text-xs text-slate-600 flex-shrink-0">{tasks.length}</span>
                 </div>
 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0.5">
+                    {/* Move arrows */}
+                    {!isFirst && (
+                        <button
+                            onClick={onMoveLeft}
+                            className="p-1 rounded text-slate-600 hover:text-indigo-400 hover:bg-slate-800 transition"
+                            title="Переместить влево"
+                        >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                    )}
+                    {!isLast && (
+                        <button
+                            onClick={onMoveRight}
+                            className="p-1 rounded text-slate-600 hover:text-indigo-400 hover:bg-slate-800 transition"
+                            title="Переместить вправо"
+                        >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    )}
                     <button
                         onClick={() => onAddTask(column.id)}
                         className="p-1 rounded text-slate-600 hover:text-indigo-400 hover:bg-slate-800 transition"
@@ -171,7 +223,7 @@ function KanbanColumn({
             </div>
         </div>
     );
-}
+});
 
 export function KanbanBoard({
     columns,
@@ -186,6 +238,7 @@ export function KanbanBoard({
 }) {
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
     const [activeId, setActiveId] = useState<string | null>(null);
+    const [activeType, setActiveType] = useState<"task" | "column" | null>(null);
     const [showCreateInColumn, setShowCreateInColumn] = useState<string | null>(null);
     const [newColumnName, setNewColumnName] = useState("");
 
@@ -213,53 +266,95 @@ export function KanbanBoard({
         },
     });
 
+    const reorderColumns = trpc.columns.reorder.useMutation({
+        onSuccess: () => utils.columns.list.invalidate(),
+    });
+
     const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+        useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
     );
 
-    const getTasksByColumn = (columnId: string) =>
-        tasks.filter((t) => t.boardColumnId === columnId).sort((a, b) => a.position - b.position);
+    const getTasksByColumn = useCallback(
+        (columnId: string) =>
+            tasks.filter((t) => t.boardColumnId === columnId).sort((a, b) => a.position - b.position),
+        [tasks]
+    );
 
-    const activeTask = activeId ? tasks.find((t) => t.id === activeId) : null;
+    const activeTask = activeType === "task" && activeId ? tasks.find((t) => t.id === activeId) : null;
+    const activeColumn = activeType === "column" && activeId
+        ? columns.find((c) => `col-${c.id}` === activeId)
+        : null;
 
-    const handleDragStart = (event: DragStartEvent) => {
-        setActiveId(event.active.id as string);
-    };
+    const columnIds = useMemo(() => columns.map((c) => `col-${c.id}`), [columns]);
 
-    const handleDragOver = (event: DragOverEvent) => {
-        // Handled in dragEnd
-    };
+    const handleDragStart = useCallback((event: DragStartEvent) => {
+        const data = event.active.data.current;
+        if (data?.type === "column") {
+            setActiveId(event.active.id as string);
+            setActiveType("column");
+        } else {
+            setActiveId(event.active.id as string);
+            setActiveType("task");
+        }
+    }, []);
 
-    const handleDragEnd = (event: DragEndEvent) => {
-        setActiveId(null);
+    const handleDragEnd = useCallback((event: DragEndEvent) => {
         const { active, over } = event;
+        setActiveId(null);
+        setActiveType(null);
+
         if (!over) return;
 
-        const taskId = active.id as string;
-        const overData = over.data.current;
+        const activeData = active.data.current;
 
+        // Column reorder
+        if (activeData?.type === "column") {
+            if (active.id === over.id) return;
+
+            const oldIndex = columns.findIndex((c) => `col-${c.id}` === active.id);
+            const overData = over.data.current;
+
+            let newIndex: number;
+            if (overData?.type === "column") {
+                newIndex = columns.findIndex((c) => `col-${c.id}` === over.id);
+            } else {
+                // Dropped on a task — find its column
+                const overTask = tasks.find((t) => t.id === over.id);
+                if (!overTask?.boardColumnId) return;
+                newIndex = columns.findIndex((c) => c.id === overTask.boardColumnId);
+            }
+
+            if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
+
+            const reordered = arrayMove(columns, oldIndex, newIndex);
+            reorderColumns.mutate({
+                items: reordered.map((c, i) => ({ id: c.id, position: i })),
+            });
+            return;
+        }
+
+        // Task move
+        const taskId = active.id as string;
         let targetColumnId: string | null = null;
 
-        if (over.id.toString().startsWith("column-")) {
+        if (over.id.toString().startsWith("col-")) {
+            targetColumnId = over.id.toString().replace("col-", "");
+        } else if (over.id.toString().startsWith("column-")) {
             targetColumnId = over.id.toString().replace("column-", "");
         } else {
-            // Dropped on another task, find its column
             const overTask = tasks.find((t) => t.id === over.id);
             if (overTask) targetColumnId = overTask.boardColumnId || null;
         }
 
         if (!targetColumnId) return;
 
-        // Get current task
         const task = tasks.find((t) => t.id === taskId);
         if (!task) return;
 
-        // If same column and same position, don't do anything
         if (task.boardColumnId === targetColumnId && active.id === over.id) return;
 
-        // Calculate position
         const columnTasks = getTasksByColumn(targetColumnId).filter((t) => t.id !== taskId);
-        const overIndex = over.id.toString().startsWith("column-")
+        const overIndex = over.id.toString().startsWith("col-") || over.id.toString().startsWith("column-")
             ? columnTasks.length
             : columnTasks.findIndex((t) => t.id === over.id);
 
@@ -270,7 +365,18 @@ export function KanbanBoard({
             boardColumnId: targetColumnId,
             position,
         });
-    };
+    }, [columns, tasks, getTasksByColumn, moveMut, reorderColumns]);
+
+    const handleMoveColumn = useCallback((columnId: string, direction: -1 | 1) => {
+        const idx = columns.findIndex((c) => c.id === columnId);
+        const targetIdx = idx + direction;
+        if (targetIdx < 0 || targetIdx >= columns.length) return;
+
+        const reordered = arrayMove(columns, idx, targetIdx);
+        reorderColumns.mutate({
+            items: reordered.map((c, i) => ({ id: c.id, position: i })),
+        });
+    }, [columns, reorderColumns]);
 
     return (
         <>
@@ -278,64 +384,75 @@ export function KanbanBoard({
                 sensors={sensors}
                 collisionDetection={closestCorners}
                 onDragStart={handleDragStart}
-                onDragOver={handleDragOver}
                 onDragEnd={handleDragEnd}
             >
-                <div className="flex gap-4 overflow-x-auto pb-4 h-full">
-                    {columns.map((column) => (
-                        <KanbanColumn
-                            key={column.id}
-                            column={column}
-                            tasks={getTasksByColumn(column.id)}
-                            onSelectTask={setSelectedTaskId}
-                            onAddTask={(colId) => setShowCreateInColumn(colId)}
-                            onEditColumn={() => { }}
-                            onDeleteColumn={(id) => deleteColumn.mutate({ id })}
-                        />
-                    ))}
+                <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
+                    <div className="flex gap-4 overflow-x-auto pb-4 h-full">
+                        {columns.map((column, idx) => (
+                            <KanbanColumn
+                                key={column.id}
+                                column={column}
+                                tasks={getTasksByColumn(column.id)}
+                                onSelectTask={setSelectedTaskId}
+                                onAddTask={(colId) => setShowCreateInColumn(colId)}
+                                onDeleteColumn={(id) => deleteColumn.mutate({ id })}
+                                onMoveLeft={() => handleMoveColumn(column.id, -1)}
+                                onMoveRight={() => handleMoveColumn(column.id, 1)}
+                                isFirst={idx === 0}
+                                isLast={idx === columns.length - 1}
+                            />
+                        ))}
 
-                    {/* Add column button */}
-                    <div className="flex-shrink-0 w-72">
-                        {newColumnName !== "" ? (
-                            <div className="bg-slate-900/50 rounded-xl p-3">
-                                <input
-                                    type="text"
-                                    value={newColumnName}
-                                    onChange={(e) => setNewColumnName(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter" && newColumnName.trim()) {
-                                            createColumn.mutate({
-                                                name: newColumnName.trim(),
-                                                projectId: projectId || undefined,
-                                                section: section || undefined,
-                                            });
-                                            setNewColumnName("");
-                                        }
-                                        if (e.key === "Escape") setNewColumnName("");
-                                    }}
-                                    autoFocus
-                                    placeholder="Название колонки"
-                                    className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-                                />
-                            </div>
-                        ) : (
-                            <button
-                                onClick={() => setNewColumnName(" ")}
-                                className="w-full py-8 border-2 border-dashed border-slate-700/30 rounded-xl text-slate-600 hover:text-slate-400 hover:border-slate-600/50 transition flex items-center justify-center gap-2 text-sm"
-                            >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                </svg>
-                                Добавить колонку
-                            </button>
-                        )}
+                        {/* Add column button */}
+                        <div className="flex-shrink-0 w-72">
+                            {newColumnName !== "" ? (
+                                <div className="bg-slate-900/50 rounded-xl p-3">
+                                    <input
+                                        type="text"
+                                        value={newColumnName}
+                                        onChange={(e) => setNewColumnName(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter" && newColumnName.trim()) {
+                                                createColumn.mutate({
+                                                    name: newColumnName.trim(),
+                                                    projectId: projectId || undefined,
+                                                    section: section || undefined,
+                                                });
+                                                setNewColumnName("");
+                                            }
+                                            if (e.key === "Escape") setNewColumnName("");
+                                        }}
+                                        autoFocus
+                                        placeholder="Название колонки"
+                                        className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                    />
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => setNewColumnName(" ")}
+                                    className="w-full py-8 border-2 border-dashed border-slate-700/30 rounded-xl text-slate-600 hover:text-slate-400 hover:border-slate-600/50 transition flex items-center justify-center gap-2 text-sm"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Добавить колонку
+                                </button>
+                            )}
+                        </div>
                     </div>
-                </div>
+                </SortableContext>
 
                 <DragOverlay>
                     {activeTask ? (
                         <div className="w-72 opacity-90 rotate-3">
                             <TaskCard task={activeTask} isDragging />
+                        </div>
+                    ) : activeColumn ? (
+                        <div className="w-72 opacity-80 rotate-1 bg-slate-900/90 rounded-xl border-2 border-indigo-500/50 p-3">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: activeColumn.color || "#64748b" }} />
+                                <span className="text-sm font-medium text-white">{activeColumn.name}</span>
+                            </div>
                         </div>
                     ) : null}
                 </DragOverlay>
