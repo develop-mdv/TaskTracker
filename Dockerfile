@@ -20,7 +20,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Install prisma CLI + tsx for seed script in runner
-RUN npm install -g prisma tsx
+RUN npm install -g prisma@6 tsx@4
 
 # Copy built app
 COPY --from=builder /app/public ./public
