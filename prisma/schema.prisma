@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  projects        Project[]
+  tasks           Task[]
+  viewPreferences ViewPreference[]
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  color       String   @default("#6366f1")
+  position    Float    @default(0)
+  archived    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tasks          Task[]
+  boardColumns   BoardColumn[]
+  viewPreferences ViewPreference[]
+
+  @@index([userId])
+}
+
+model BoardColumn {
+  id        String   @id @default(cuid())
+  name      String
+  position  Float    @default(0)
+  color     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // A column belongs to a project OR to a global section (inbox)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // For global sections (inbox) — null projectId + section name
+  section   String?  // "inbox" | null (null = project-scoped)
+
+  tasks Task[]
+
+  @@index([projectId])
+  @@index([section])
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  priority    Int      @default(0) // 0=none, 1=low, 2=medium, 3=high, 4=urgent
+  position    Float    @default(0)
+  tags        String[] @default([])
+
+  // Placement: a task lives in a section OR a project (not both)
+  // section: "inbox" | null
+  // if projectId is set, section should be null
+  section   String?  // "inbox" | null
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  // Kanban column (optional, used in kanban view)
+  boardColumnId String?
+  boardColumn   BoardColumn? @relation(fields: [boardColumnId], references: [id], onDelete: SetNull)
+
+  // Dates
+  dueDate   DateTime?
+  startDate DateTime?
+  endDate   DateTime?
+
+  // Soft states
+  completedAt DateTime?
+  deletedAt   DateTime?
+
+  // Recurrence
+  recurrenceRuleId String?
+  recurrenceRule   RecurrenceRule? @relation(fields: [recurrenceRuleId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  attachments Attachment[]
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([section])
+  @@index([boardColumnId])
+  @@index([deletedAt])
+  @@index([completedAt])
+  @@index([dueDate])
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  filename  String
+  mimeType  String?
+  size      Int?     // bytes
+  s3Key     String   // key in MinIO
+  createdAt DateTime @default(now())
+
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+}
+
+model RecurrenceRule {
+  id          String   @id @default(cuid())
+  // Recurrence pattern
+  frequency   String   // "daily" | "weekly" | "monthly" | "custom"
+  interval    Int      @default(1) // every N days/weeks/months
+  daysOfWeek  Int[]    @default([]) // 0=Sun..6=Sat, for weekly
+  dayOfMonth  Int?     // for monthly
+
+  // Template fields (copied to generated tasks)
+  title       String
+  description String?  @db.Text
+  priority    Int      @default(0)
+  tags        String[] @default([])
+  section     String?
+  projectId   String?
+
+  // Timezone for generation
+  timezone    String   @default("Europe/Amsterdam")
+
+  // Track last generation
+  lastGeneratedAt DateTime?
+  active          Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+
+  tasks Task[] // generated instances
+}
+
+model ViewPreference {
+  id   String @id @default(cuid())
+
+  // Context: which section or project this preference applies to
+  // Either section or projectId is set, not both
+  section   String?  // "inbox" | "today" | "archive" | "trash"
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  viewMode  String   @default("list") // "list" | "kanban"
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, section])
+  @@unique([userId, projectId])
+  @@index([userId])
+}

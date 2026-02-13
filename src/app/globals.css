@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+/* FullCalendar dark theme overrides */
+.calendar-wrapper .fc {
+  --fc-border-color: rgba(51, 65, 85, 0.5);
+  --fc-button-bg-color: #1e293b;
+  --fc-button-border-color: rgba(51, 65, 85, 0.5);
+  --fc-button-hover-bg-color: #334155;
+  --fc-button-hover-border-color: #475569;
+  --fc-button-active-bg-color: #4f46e5;
+  --fc-button-active-border-color: #4f46e5;
+  --fc-today-bg-color: rgba(99, 102, 241, 0.08);
+  --fc-neutral-bg-color: #0f172a;
+  --fc-page-bg-color: transparent;
+  --fc-event-border-color: transparent;
+  --fc-now-indicator-color: #6366f1;
+  --fc-list-event-hover-bg-color: #1e293b;
+  font-size: 14px;
+}
+
+.calendar-wrapper .fc .fc-col-header-cell-cushion,
+.calendar-wrapper .fc .fc-daygrid-day-number {
+  color: #94a3b8;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.calendar-wrapper .fc .fc-toolbar-title {
+  color: #e2e8f0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.calendar-wrapper .fc .fc-button {
+  font-size: 0.8rem;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-weight: 500;
+  box-shadow: none !important;
+}
+
+.calendar-wrapper .fc .fc-event {
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-width: 2px;
+  border-left-width: 3px;
+}
+
+.calendar-wrapper .fc .fc-daygrid-day:hover {
+  background-color: rgba(99, 102, 241, 0.04);
+}
+
+.calendar-wrapper .fc .fc-day-today .fc-daygrid-day-number {
+  color: #818cf8;
+  font-weight: 700;
+}
+
+.calendar-wrapper .fc .fc-scrollgrid {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
