@@ -5,6 +5,7 @@ import { signOut } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { CreateProjectModal } from "./create-project-modal";
+import { useSidebar } from "./sidebar-context";
 
 const SECTIONS = [
     {
@@ -73,7 +74,7 @@ export function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
     const [showCreateProject, setShowCreateProject] = useState(false);
-    const [collapsed, setCollapsed] = useState(false);
+    const { collapsed, toggle } = useSidebar();
 
     const { data: projects } = trpc.projects.list.useQuery();
 
@@ -91,7 +92,7 @@ export function Sidebar() {
                         </h1>
                     )}
                     <button
-                        onClick={() => setCollapsed(!collapsed)}
+                        onClick={toggle}
                         className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
                     >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -114,8 +115,8 @@ export function Sidebar() {
                                     key={section.id}
                                     onClick={() => router.push(section.href)}
                                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
-                                            ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/20"
-                                            : "text-slate-400 hover:text-white hover:bg-slate-800"
+                                        ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/20"
+                                        : "text-slate-400 hover:text-white hover:bg-slate-800"
                                         } ${collapsed ? "justify-center" : ""}`}
                                     title={collapsed ? section.label : undefined}
                                 >
@@ -152,8 +153,8 @@ export function Sidebar() {
                                         key={project.id}
                                         onClick={() => router.push(`/project/${project.id}`)}
                                         className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isActive
-                                                ? "bg-slate-800 text-white"
-                                                : "text-slate-400 hover:text-white hover:bg-slate-800"
+                                            ? "bg-slate-800 text-white"
+                                            : "text-slate-400 hover:text-white hover:bg-slate-800"
                                             } ${collapsed ? "justify-center" : ""}`}
                                         title={collapsed ? project.name : undefined}
                                     >

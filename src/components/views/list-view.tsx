@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import {
     DndContext,
+    DragOverlay,
     closestCenter,
     PointerSensor,
     useSensor,
     useSensors,
+    DragStartEvent,
     DragEndEvent,
 } from "@dnd-kit/core";
 import {
@@ -37,7 +39,7 @@ interface Task {
     _count?: { attachments: number };
 }
 
-function SortableTaskItem({
+const SortableTaskItem = memo(function SortableTaskItem({
     task,
     onSelect,
 }: {
@@ -51,22 +53,29 @@ function SortableTaskItem({
         transform,
         transition,
         isDragging,
+        isOver,
     } = useSortable({ id: task.id });
 
     const style = {
         transform: CSS.Transform.toString(transform),
-        transition,
+        transition: transition || "transform 200ms cubic-bezier(0.25, 1, 0.5, 1)",
+        opacity: isDragging ? 0 : 1,
     };
 
     return (
         <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+            {/* Drop indicator line */}
+            {isOver && !isDragging && (
+                <div className="h-0.5 bg-indigo-500 rounded-full mx-2 mb-1 shadow-[0_0_8px_rgba(99,102,241,0.6)] animate-pulse" />
+            )}
             <TaskCard task={task} onClick={() => onSelect(task.id)} isDragging={isDragging} />
         </div>
     );
-}
+});
 
 export function ListView({ tasks }: { tasks: Task[] }) {
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+    const [activeTask, setActiveTask] = useState<Task | null>(null);
     const utils = trpc.useUtils();
 
     const reorderMut = trpc.tasks.reorder.useMutation({
@@ -79,7 +88,13 @@ export function ListView({ tasks }: { tasks: Task[] }) {
         })
     );
 
+    const handleDragStart = (event: DragStartEvent) => {
+        const task = tasks.find((t) => t.id === event.active.id);
+        setActiveTask(task || null);
+    };
+
     const handleDragEnd = (event: DragEndEvent) => {
+        setActiveTask(null);
         const { active, over } = event;
         if (!over || active.id === over.id) return;
 
@@ -101,6 +116,7 @@ export function ListView({ tasks }: { tasks: Task[] }) {
             <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
             >
                 <SortableContext
@@ -117,6 +133,18 @@ export function ListView({ tasks }: { tasks: Task[] }) {
                         ))}
                     </div>
                 </SortableContext>
+
+                {/* Drag overlay */}
+                <DragOverlay dropAnimation={{
+                    duration: 200,
+                    easing: "cubic-bezier(0.25, 1, 0.5, 1)",
+                }}>
+                    {activeTask ? (
+                        <div className="shadow-2xl shadow-black/50 scale-[1.02] rounded-lg">
+                            <TaskCard task={activeTask} isDragging />
+                        </div>
+                    ) : null}
+                </DragOverlay>
             </DndContext>
 
             {tasks.length === 0 && (
