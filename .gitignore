@@ -52,8 +52,9 @@ prisma/migrations/migration_lock.toml
 *.swp
 *.swo
 
-# nginx certs (generated on server)
+# nginx runtime files (generated on server)
 nginx/certs/
+nginx/active.conf
 
 # docker volumes / data
 postgres_data/

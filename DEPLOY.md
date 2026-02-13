@@ -1,4 +1,4 @@
-# DEPLOY.md — Деплой TaskTracker на VPS (kawdle.ru)
+# DEPLOY.md — Деплой TaskTracker на VPS (kwadle.ru)
 
 Пошаговая инструкция для запуска production-версии на VPS с HTTPS.
 
@@ -7,7 +7,7 @@
 ## Требования
 
 - VPS: Ubuntu 22.04+, минимум 2 GB RAM, 10 GB диск
-- Домен `kawdle.ru` — A-запись указывает на IP вашего VPS
+- Домен `kwadle.ru` — A-запись указывает на IP вашего VPS
 - Открытые порты: **80**, **443**
 
 ---
@@ -62,7 +62,7 @@ DATABASE_URL="postgresql://postgres:STRONG_DB_PASSWORD@postgres:5432/tasktracker
 POSTGRES_PASSWORD=STRONG_DB_PASSWORD
 
 # NextAuth
-NEXTAUTH_URL="https://kawdle.ru"
+NEXTAUTH_URL="https://kwadle.ru"
 NEXTAUTH_SECRET=<сгенерируйте: openssl rand -base64 32>
 
 # MinIO
@@ -87,34 +87,38 @@ SEED_PASSWORD=<придумайте надёжный пароль>
 
 ## Шаг 4. Получение SSL-сертификата (Let's Encrypt)
 
-Сначала нужно получить сертификат **до** запуска полного nginx. Для этого временно запустим nginx только на порту 80:
+Сначала нужно получить сертификат **до** запуска полного nginx с HTTPS.
+
+В репозитории два nginx-конфига:
+- `nginx/nginx.initial.conf` — только HTTP (для получения сертификата)
+- `nginx/nginx.conf` — полный с HTTPS (для продакшена)
+
+Docker Compose монтирует `nginx/active.conf`, поэтому просто копируем нужный:
 
 ```bash
-# Создаём директории для certbot
+# Создаём директории
 mkdir -p nginx/certs
 
-# Запускаем только postgres, minio и nginx (без SSL блока)
-# Временно закомментируйте блок server :443 в nginx/nginx.conf:
-nano nginx/nginx.conf
-# Закомментируйте строки 28-75 (весь блок "# HTTPS server")
+# Ставим начальный конфиг (только HTTP)
+cp nginx/nginx.initial.conf nginx/active.conf
 
 # Запускаем
-docker compose --profile production up -d postgres minio nginx
+docker compose --profile production up -d
 
 # Получаем сертификат
 docker compose --profile production run --rm certbot certonly \
   --webroot \
   --webroot-path=/var/www/certbot \
-  -d kawdle.ru \
-  --email your-email@example.com \
+  -d kwadle.ru \
+  --email dima_may@bk.ru \
   --agree-tos \
   --no-eff-email
 
-# Раскомментируйте блок :443 обратно
-nano nginx/nginx.conf
+# Переключаемся на полный конфиг с HTTPS
+cp nginx/nginx.conf nginx/active.conf
 
-# Остановите всё
-docker compose --profile production down
+# Перезапускаем nginx
+docker compose --profile production restart nginx
 ```
 
 ---
@@ -139,10 +143,10 @@ docker compose exec app npx prisma db seed
 Проверяем:
 ```bash
 # Health check
-curl https://kawdle.ru/api/health
+curl https://kwadle.ru/api/health
 # → {"status":"ok","timestamp":"..."}
 
-# Или просто откройте в браузере: https://kawdle.ru
+# Или просто откройте в браузере: https://kwadle.ru
 ```
 
 ---
