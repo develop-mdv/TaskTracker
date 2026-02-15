@@ -5,6 +5,7 @@ import { signOut } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { CreateProjectModal } from "./create-project-modal";
+import { ProjectSettingsModal } from "./project-settings-modal";
 import { useSidebar } from "./sidebar-context";
 
 const SECTIONS = [
