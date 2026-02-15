@@ -270,7 +270,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
 
                         <div>
                             <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                                Дата
+                                Дедлайн
                             </label>
                             <input
                                 type="date"
@@ -281,10 +281,26 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                 className="w-full mt-1 px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
                             />
                         </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                Дата начала
+                            </label>
+                            <input
+                                type="date"
+                                value={task.startDate ? new Date(task.startDate).toISOString().split("T")[0] : ""}
+                                onChange={(e) =>
+                                    updateTask.mutate({ id: task.id, startDate: e.target.value || null })
+                                }
+                                className="w-full mt-1 px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                            />
+                        </div>
 
                         <div>
                             <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                                Конечная дата
+                                Дата окончания
                             </label>
                             <input
                                 type="date"

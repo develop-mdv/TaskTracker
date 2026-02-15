@@ -131,17 +131,16 @@ cd /opt/tasktracker
 # Собираем и запускаем все сервисы
 docker compose --profile production up -d --build
 
-# Ждём ~30 секунд пока всё поднимется, затем:
-
-# Применяем схему БД
-docker compose exec app npx prisma db push
-
-# Создаём пользователя и дефолтные данные
-docker compose exec app npx prisma db seed
+# Ждём ~30 секунд пока всё поднимется
 ```
+
+> ℹ️ Миграция БД (`prisma db push`) и создание начального пользователя (`prisma db seed`) выполняются **автоматически** при старте контейнера.
 
 Проверяем:
 ```bash
+# Логи приложения — убедиться что миграция прошла
+docker compose logs app --tail 20
+
 # Health check
 curl https://kwadle.ru/api/health
 # → {"status":"ok","timestamp":"..."}
@@ -188,7 +187,14 @@ mkdir -p /opt/backups
 cd /opt/tasktracker
 git pull
 docker compose --profile production up -d --build
-docker compose exec app npx prisma db push  # если изменилась схема
+```
+
+> ℹ️ `prisma db push` и `prisma db seed` выполняются **автоматически** при старте контейнера `app` (см. `docker-entrypoint.sh`). Вручную их запускать не нужно.
+
+Проверить что всё поднялось:
+```bash
+docker compose --profile production ps
+docker compose logs app --tail 20
 ```
 
 ---
