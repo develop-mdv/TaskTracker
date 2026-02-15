@@ -187,9 +187,12 @@ mkdir -p /opt/backups
 cd /opt/tasktracker
 git pull
 docker compose --profile production up -d --build
+docker compose restart nginx  # nginx кеширует IP контейнера app — нужен рестарт
 ```
 
 > ℹ️ `prisma db push` и `prisma db seed` выполняются **автоматически** при старте контейнера `app` (см. `docker-entrypoint.sh`). Вручную их запускать не нужно.
+>
+> ⚠️ После пересборки `app` обязательно перезапустите `nginx` — иначе будет ошибка 502, т.к. nginx кеширует IP-адрес контейнера.
 
 Проверить что всё поднялось:
 ```bash
