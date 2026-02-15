@@ -97,6 +97,7 @@ export const tasksRouter = router({
                 tags: z.array(z.string()).optional(),
                 section: z.enum(["inbox"]).nullable().optional(),
                 projectId: z.string().nullable().optional(),
+                projectSectionId: z.string().nullable().optional(),
                 boardColumnId: z.string().nullable().optional(),
                 dueDate: z.string().nullable().optional(),
                 startDate: z.string().nullable().optional(),
@@ -104,16 +105,32 @@ export const tasksRouter = router({
             })
         )
         .mutation(async ({ ctx, input }) => {
+            let projectId = input.projectId ?? null;
+            let section: "inbox" | null = input.section ?? "inbox";
+
+            // If adding to a specific project section, ensure projectId is set correctly
+            if (input.projectSectionId) {
+                const projectSection = await (ctx.prisma as any).projectSection.findUnique({
+                    where: { id: input.projectSectionId },
+                });
+                if (!projectSection) throw new TRPCError({ code: "NOT_FOUND", message: "Section not found" });
+                projectId = projectSection.projectId;
+                section = null; // Clear inbox/global section if in a project
+            } else if (projectId) {
+                section = null;
+            }
+
             // Calculate next position
             const maxPos = await ctx.prisma.task.aggregate({
                 where: {
                     userId: ctx.userId,
-                    section: input.section || undefined,
-                    projectId: input.projectId || undefined,
-                    boardColumnId: input.boardColumnId || undefined,
+                    section: section || undefined,
+                    projectId: projectId || undefined,
+                    projectSectionId: input.projectSectionId || null, // Specific section or "no section"
+                    boardColumnId: input.boardColumnId || undefined, // If using board columns
                     deletedAt: null,
                     completedAt: null,
-                },
+                } as any,
                 _max: { position: true },
             });
 
@@ -123,15 +140,16 @@ export const tasksRouter = router({
                     description: input.description,
                     priority: input.priority ?? 0,
                     tags: input.tags ?? [],
-                    section: input.projectId ? null : (input.section ?? "inbox"),
-                    projectId: input.projectId ?? null,
+                    section: projectId ? null : section,
+                    projectId: projectId,
+                    projectSectionId: input.projectSectionId ?? null,
                     boardColumnId: input.boardColumnId ?? null,
                     dueDate: input.dueDate ? new Date(input.dueDate) : null,
                     startDate: input.startDate ? new Date(input.startDate) : null,
                     endDate: input.endDate ? new Date(input.endDate) : null,
                     position: (maxPos._max.position ?? 0) + 1,
                     userId: ctx.userId,
-                },
+                } as any,
                 include: {
                     project: { select: { id: true, name: true, color: true } },
                     boardColumn: { select: { id: true, name: true, color: true } },
@@ -149,6 +167,7 @@ export const tasksRouter = router({
                 tags: z.array(z.string()).optional(),
                 section: z.enum(["inbox"]).nullable().optional(),
                 projectId: z.string().nullable().optional(),
+                projectSectionId: z.string().nullable().optional(),
                 boardColumnId: z.string().nullable().optional(),
                 dueDate: z.string().nullable().optional(),
                 startDate: z.string().nullable().optional(),
@@ -167,14 +186,38 @@ export const tasksRouter = router({
             if (data.tags !== undefined) updateData.tags = data.tags;
             if (data.position !== undefined) updateData.position = data.position;
 
+            // Handle location changes
+            if (data.projectSectionId !== undefined) {
+                updateData.projectSectionId = data.projectSectionId;
+                if (data.projectSectionId) {
+                    // Moving to a section -> must update projectId to match section's project
+                    const s = await (ctx.prisma as any).projectSection.findUnique({ where: { id: data.projectSectionId } });
+                    if (s) {
+                        updateData.projectId = s.projectId;
+                        updateData.section = null; // Clear global section
+                    }
+                }
+                // If setting projectSectionId to null, we keep current projectId unless explicitly changed
+            }
+
             if (data.section !== undefined) {
                 updateData.section = data.section;
-                if (data.section) updateData.projectId = null;
+                if (data.section) {
+                    updateData.projectId = null;
+                    updateData.projectSectionId = null;
+                }
             }
             if (data.projectId !== undefined) {
                 updateData.projectId = data.projectId;
-                if (data.projectId) updateData.section = null;
+                if (data.projectId) {
+                    updateData.section = null;
+                    // If changing project but NOT specifying section, should we clear section?
+                    if (data.projectSectionId === undefined) {
+                        updateData.projectSectionId = null;
+                    }
+                }
             }
+
             if (data.boardColumnId !== undefined) updateData.boardColumnId = data.boardColumnId;
 
             if (data.dueDate !== undefined) {
@@ -189,7 +232,7 @@ export const tasksRouter = router({
 
             return ctx.prisma.task.update({
                 where: { id, userId: ctx.userId },
-                data: updateData,
+                data: updateData as any,
                 include: {
                     project: { select: { id: true, name: true, color: true } },
                     boardColumn: { select: { id: true, name: true, color: true } },
@@ -204,6 +247,7 @@ export const tasksRouter = router({
                 id: z.string(),
                 section: z.enum(["inbox"]).nullable().optional(),
                 projectId: z.string().nullable().optional(),
+                projectSectionId: z.string().nullable().optional(),
                 boardColumnId: z.string().nullable().optional(),
                 position: z.number().optional(),
                 dueDate: z.string().nullable().optional(),
@@ -213,14 +257,35 @@ export const tasksRouter = router({
             const { id, ...data } = input;
             const updateData: Record<string, unknown> = {};
 
+            // Helper to sync project/section logic (similar to update)
+            if (data.projectSectionId !== undefined) {
+                updateData.projectSectionId = data.projectSectionId;
+                if (data.projectSectionId) {
+                    const s = await (ctx.prisma as any).projectSection.findUnique({ where: { id: data.projectSectionId } });
+                    if (s) {
+                        updateData.projectId = s.projectId;
+                        updateData.section = null;
+                    }
+                }
+            }
+
             if (data.section !== undefined) {
                 updateData.section = data.section;
-                if (data.section) updateData.projectId = null;
+                if (data.section) {
+                    updateData.projectId = null;
+                    updateData.projectSectionId = null;
+                }
             }
             if (data.projectId !== undefined) {
                 updateData.projectId = data.projectId;
-                if (data.projectId) updateData.section = null;
+                if (data.projectId) {
+                    updateData.section = null;
+                    if (data.projectSectionId === undefined) {
+                        updateData.projectSectionId = null;
+                    }
+                }
             }
+
             if (data.boardColumnId !== undefined) updateData.boardColumnId = data.boardColumnId;
             if (data.position !== undefined) updateData.position = data.position;
             if (data.dueDate !== undefined) {
@@ -229,7 +294,7 @@ export const tasksRouter = router({
 
             return ctx.prisma.task.update({
                 where: { id, userId: ctx.userId },
-                data: updateData,
+                data: updateData as any,
                 include: {
                     project: { select: { id: true, name: true, color: true } },
                     boardColumn: { select: { id: true, name: true, color: true } },
@@ -328,7 +393,7 @@ export const tasksRouter = router({
             }
             return ctx.prisma.task.updateMany({
                 where: { id: { in: input.ids }, userId: ctx.userId },
-                data,
+                data: data as any,
             });
         }),
 
@@ -349,16 +414,25 @@ export const tasksRouter = router({
     reorder: protectedProcedure
         .input(
             z.object({
-                items: z.array(z.object({ id: z.string(), position: z.number() })),
+                items: z.array(z.object({
+                    id: z.string(),
+                    position: z.number(),
+                    projectSectionId: z.string().nullable().optional()
+                })),
             })
         )
         .mutation(async ({ ctx, input }) => {
-            const ops = input.items.map((item) =>
-                ctx.prisma.task.update({
+            const ops = input.items.map((item) => {
+                const data: any = { position: item.position };
+                if (item.projectSectionId !== undefined) {
+                    data.projectSectionId = item.projectSectionId;
+                }
+                return ctx.prisma.task.update({
                     where: { id: item.id, userId: ctx.userId },
-                    data: { position: item.position },
-                })
-            );
+                    data,
+                });
+            });
             await ctx.prisma.$transaction(ops);
         }),
+
 });

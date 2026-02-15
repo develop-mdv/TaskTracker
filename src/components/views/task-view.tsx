@@ -5,6 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { ListView } from "./list-view";
 import { KanbanBoard } from "./kanban-board";
 import { CreateTaskModal } from "../task/create-task-modal";
+import { ManageSectionsModal } from "../projects/manage-sections-modal";
 
 interface TaskViewProps {
     section?: string;
@@ -63,6 +64,16 @@ export function TaskView({
         section: section || undefined,
     });
 
+    // Fetch project with sections if we are in a project view
+    const { data: project } = trpc.projects.getById.useQuery(
+        { id: projectId! },
+        { enabled: !!projectId }
+    );
+    const sections = (project as any)?.sections ?? [];
+
+    // Manage Sections Modal State
+    const [showManageSections, setShowManageSections] = useState(false);
+
     const handleToggle = (mode: "list" | "kanban") => {
         setLocalViewMode(mode);
         setViewPref.mutate({
@@ -76,7 +87,20 @@ export function TaskView({
         <div className="h-full flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50">
-                <h1 className="text-xl font-bold text-white">{title}</h1>
+                <div className="flex items-center gap-3">
+                    <h1 className="text-xl font-bold text-white">{title}</h1>
+                    {projectId && !archived && !deleted && (
+                        <button
+                            onClick={() => setShowManageSections(true)}
+                            className="p-1.5 text-slate-500 hover:text-indigo-400 hover:bg-slate-800 rounded-lg transition"
+                            title="Управление секциями"
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
+                    )}
+                </div>
 
                 <div className="flex items-center gap-3">
                     {showViewToggle && !archived && !deleted && (
@@ -128,9 +152,13 @@ export function TaskView({
                         tasks={tasks as any}
                         projectId={projectId}
                         section={section}
+                        projectSections={sections}
                     />
                 ) : (
-                    <ListView tasks={tasks as any} />
+                    <ListView
+                        tasks={tasks as any}
+                        projectSections={sections}
+                    />
                 )}
             </div>
 
@@ -139,6 +167,13 @@ export function TaskView({
                     onClose={() => setShowCreate(false)}
                     defaultSection={section || null}
                     defaultProjectId={projectId || null}
+                />
+            )}
+
+            {showManageSections && projectId && (
+                <ManageSectionsModal
+                    projectId={projectId}
+                    onClose={() => setShowManageSections(false)}
                 />
             )}
         </div>

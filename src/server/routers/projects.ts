@@ -25,6 +25,7 @@ export const projectsRouter = router({
                 where: { id: input.id, userId: ctx.userId },
                 include: {
                     boardColumns: { orderBy: { position: "asc" } },
+                    sections: { orderBy: { position: "asc" } },
                 },
             });
             if (!project) throw new Error("Project not found");
@@ -91,11 +92,115 @@ export const projectsRouter = router({
             });
         }),
 
-    delete: protectedProcedure
+    // Soft delete: Move project and its active tasks to trash
+    softDelete: protectedProcedure
         .input(z.object({ id: z.string() }))
         .mutation(async ({ ctx, input }) => {
-            return ctx.prisma.project.delete({
+            const project = await ctx.prisma.project.findUnique({
                 where: { id: input.id, userId: ctx.userId },
+            });
+            if (!project) throw new Error("Not found");
+
+            return ctx.prisma.$transaction(async (tx) => {
+                // Mark tasks as deleted because of project deletion
+                // Only touch tasks that are NOT already deleted
+                await tx.task.updateMany({
+                    where: { projectId: input.id, deletedAt: null },
+                    data: {
+                        deletedAt: new Date(),
+                        deletedFromProjectId: input.id,
+                    },
+                });
+
+                return tx.project.update({
+                    where: { id: input.id },
+                    data: { deletedAt: new Date() },
+                });
+            });
+        }),
+
+    // Restore: Bring back project and ONLY tasks that were deleted with it
+    restore: protectedProcedure
+        .input(z.object({ id: z.string() }))
+        .mutation(async ({ ctx, input }) => {
+            const project = await ctx.prisma.project.findUnique({
+                where: { id: input.id, userId: ctx.userId },
+            });
+            if (!project) throw new Error("Not found");
+
+            return ctx.prisma.$transaction(async (tx) => {
+                // Restore tasks that were deleted specifically by project deletion
+                await tx.task.updateMany({
+                    where: {
+                        projectId: input.id,
+                        deletedFromProjectId: input.id
+                    },
+                    data: {
+                        deletedAt: null,
+                        deletedFromProjectId: null, // clear the flag
+                    },
+                });
+
+                return tx.project.update({
+                    where: { id: input.id },
+                    data: { deletedAt: null },
+                });
+            });
+        }),
+
+    // Hard delete: Permanent removal
+    hardDelete: protectedProcedure
+        .input(z.object({
+            id: z.string(),
+            mode: z.enum(["TRASH_TASKS", "DELETE_ALL"]).default("TRASH_TASKS"),
+        }))
+        .mutation(async ({ ctx, input }) => {
+            const project = await ctx.prisma.project.findUnique({
+                where: { id: input.id, userId: ctx.userId },
+            });
+            if (!project) throw new Error("Not found");
+
+            return ctx.prisma.$transaction(async (tx) => {
+                if (input.mode === "DELETE_ALL") {
+                    // Cascade delete will handle tasks if configured in schema, 
+                    // but manual delete is safer to trigger attachment cleanup logic if needed
+                    // (Though currently hardDelete task logic is separate)
+                    // For now relying on cascade from database might be tricky if we want to clean S3
+                    // Let's assume database cascade handles records, or we do manual
+
+                    // Actually, schema uses onDelete: SetNull for Task.project? No.
+                    // Task.project: @relation(..., onDelete: SetNull) in schema? Let's check.
+                    // Schema:   project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+                    // Wait, if onDelete is SetNull, then deleting project unlinks tasks.
+                    // That's bad for "DELETE_ALL". We must manually delete tasks first.
+
+                    await tx.task.deleteMany({
+                        where: { projectId: input.id },
+                    });
+                } else {
+                    // TRASH_TASKS (Default)
+                    // Soft delete all tasks associated (even if already deleted? yes, ensure they are deleted)
+                    // And unlink them from project (since project is gone) OR keep projectId?
+                    // Schema says SetNull on delete. 
+                    // So if we delete project, projectId becomes null.
+                    // We want to preserve context? If projectId is null, we lose where it came from.
+                    // But if hard delete project, we can't keep broken reference.
+                    // So we must accept they go to "Trash" without project assignment.
+
+                    await tx.task.updateMany({
+                        where: { projectId: input.id },
+                        data: {
+                            deletedAt: new Date(),
+                            projectId: null, // detached
+                            projectSectionId: null, // detached
+                            // deletedFromProjectId? No project to restore to.
+                        }
+                    });
+                }
+
+                return tx.project.delete({
+                    where: { id: input.id },
+                });
             });
         }),
 

@@ -7,6 +7,8 @@ import { recurrenceRouter } from "./routers/recurrence";
 import { statsRouter } from "./routers/stats";
 import { viewPreferencesRouter } from "./routers/viewPreferences";
 
+import { sectionsRouter } from "./routers/sections";
+
 export const appRouter = router({
     projects: projectsRouter,
     tasks: tasksRouter,
@@ -15,6 +17,7 @@ export const appRouter = router({
     recurrence: recurrenceRouter,
     stats: statsRouter,
     viewPreferences: viewPreferencesRouter,
+    sections: sectionsRouter,
 });
 
 export type AppRouter = typeof appRouter;

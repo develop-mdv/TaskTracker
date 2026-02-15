@@ -10,11 +10,13 @@ import {
     useSensors,
     DragStartEvent,
     DragEndEvent,
+    DragOverEvent,
 } from "@dnd-kit/core";
 import {
     SortableContext,
     verticalListSortingStrategy,
     useSortable,
+    arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { TaskCard } from "../task/task-card";
@@ -33,10 +35,17 @@ interface Task {
     deletedAt?: string | Date | null;
     section?: string | null;
     projectId?: string | null;
+    projectSectionId?: string | null;
     boardColumnId?: string | null;
     project?: { id: string; name: string; color: string } | null;
     boardColumn?: { id: string; name: string; color?: string | null } | null;
     _count?: { attachments: number };
+}
+
+interface ProjectSection {
+    id: string;
+    name: string;
+    position: number;
 }
 
 const SortableTaskItem = memo(function SortableTaskItem({
@@ -54,7 +63,7 @@ const SortableTaskItem = memo(function SortableTaskItem({
         transition,
         isDragging,
         isOver,
-    } = useSortable({ id: task.id });
+    } = useSortable({ id: task.id, data: { task } });
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -64,7 +73,6 @@ const SortableTaskItem = memo(function SortableTaskItem({
 
     return (
         <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-            {/* Drop indicator line */}
             {isOver && !isDragging && (
                 <div className="h-0.5 bg-indigo-500 rounded-full mx-2 mb-1 shadow-[0_0_8px_rgba(99,102,241,0.6)] animate-pulse" />
             )}
@@ -73,7 +81,7 @@ const SortableTaskItem = memo(function SortableTaskItem({
     );
 });
 
-export function ListView({ tasks }: { tasks: Task[] }) {
+export function ListView({ tasks, projectSections = [] }: { tasks: Task[]; projectSections?: ProjectSection[] }) {
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
     const [activeTask, setActiveTask] = useState<Task | null>(null);
     const utils = trpc.useUtils();
@@ -88,28 +96,142 @@ export function ListView({ tasks }: { tasks: Task[] }) {
         })
     );
 
+    // Group tasks (memoize if needed, but simple filtering is cheap for small lists)
+    const hasSections = projectSections.length > 0;
+
+    // Helper to get section ID (treating null/undefined as "uncategorized")
+    const getSectionId = (t: Task) => t.projectSectionId ?? "uncategorized";
+
     const handleDragStart = (event: DragStartEvent) => {
         const task = tasks.find((t) => t.id === event.active.id);
         setActiveTask(task || null);
     };
 
     const handleDragEnd = (event: DragEndEvent) => {
-        setActiveTask(null);
         const { active, over } = event;
-        if (!over || active.id === over.id) return;
+        setActiveTask(null);
 
-        const oldIndex = tasks.findIndex((t) => t.id === active.id);
-        const newIndex = tasks.findIndex((t) => t.id === over.id);
-        if (oldIndex === -1 || newIndex === -1) return;
+        if (!over) return;
 
-        // Calculate new positions
-        const items = tasks.map((t, i) => ({
-            id: t.id,
-            position: i === oldIndex ? newIndex : i < Math.min(oldIndex, newIndex) || i > Math.max(oldIndex, newIndex) ? i : oldIndex < newIndex ? i - 1 : i + 1,
-        }));
+        const activeId = active.id as string;
+        const overId = over.id as string;
 
-        reorderMut.mutate({ items });
+        // If dropped on a container (section), move to that section (end of list)
+        // If dropped on a task, reorder relative to that task
+
+        const activeTask = tasks.find((t) => t.id === activeId);
+        if (!activeTask) return;
+
+        let newSectionId: string | null = activeTask.projectSectionId ?? null;
+        let newIndex = -1;
+
+        // Determine target section and index
+        if (projectSections.some((s) => s.id === overId) || overId === "uncategorized") {
+            // Dropped on a section header/container
+            newSectionId = overId === "uncategorized" ? null : overId;
+            // Append to end
+            const sectionTasks = tasks.filter((t) => (newSectionId ? t.projectSectionId === newSectionId : !t.projectSectionId));
+            newIndex = sectionTasks.length;
+        } else {
+            // Dropped on another task
+            const overTask = tasks.find((t) => t.id === overId);
+            if (overTask) {
+                newSectionId = overTask.projectSectionId ?? null;
+                const sectionTasks = tasks.filter((t) => (newSectionId ? t.projectSectionId === newSectionId : !t.projectSectionId));
+                const overIndex = sectionTasks.findIndex((t) => t.id === overId);
+                const activeIndex = sectionTasks.findIndex((t) => t.id === activeId);
+
+                if (activeIndex !== -1) {
+                    // Same section reorder
+                    newIndex = arrayMove(sectionTasks, activeIndex, overIndex).findIndex(t => t.id === activeId); // Simplification, arrayMove returns array, we need index
+                    // Logic:
+                    // If moving down: newIndex = overIndex
+                    // If moving up: newIndex = overIndex
+                    // arrayMove handles index shift. 
+                    // We just need to know the new order of IDs in this section.
+                } else {
+                    // Moving into section at specific spot
+                    newIndex = overIndex;
+                    // If moving from another section, we place it "at" overIndex, pushing others down?
+                    // Typically insert before or after. dnd-kit uses collision center.
+                    // Let's assume insert at overIndex.
+                }
+            }
+        }
+
+        // Construct new items list for the affected section(s)
+        // Actually, we can just calculate the new Order for ALL tasks in the target section
+
+        // This is complex to do perfectly optimistically without a reducer. 
+        // Allow simpler approach:
+        // 1. Identify target section tasks
+        // 2. Insert activeTask into target list at correct position
+        // 3. Re-calculate positions for target section
+        // 4. Send updates
+
+        const targetSectionId = newSectionId;
+        const sourceSectionId = activeTask.projectSectionId ?? null;
+
+        let targetTasks = tasks.filter(t => (targetSectionId ? t.projectSectionId === targetSectionId : !t.projectSectionId));
+
+        // Remove active from source if different (though we just filtered raw tasks, so active might be in targetTasks if src==target)
+        if (sourceSectionId === targetSectionId) {
+            const oldIndex = targetTasks.findIndex(t => t.id === activeId);
+            const overTask = tasks.find(t => t.id === overId);
+            const newIndex = overTask ? targetTasks.findIndex(t => t.id === overId) : targetTasks.length; // If dropped on container, end
+
+            if (oldIndex !== newIndex) {
+                const newOrder = arrayMove(targetTasks, oldIndex, newIndex);
+                reorderMut.mutate({
+                    items: newOrder.map((t, i) => ({ id: t.id, position: i, projectSectionId: targetSectionId }))
+                });
+            }
+        } else {
+            // Moving between sections
+            // Remove from source (implicitly handled by just preparing target list)
+            // Add to target
+
+            // New target list:
+            // Find insertion index
+            let insertIndex = targetTasks.length;
+            const overTask = tasks.find(t => t.id === overId);
+            if (overTask && (overTask.projectSectionId === targetSectionId || (!overTask.projectSectionId && !targetSectionId))) {
+                insertIndex = targetTasks.findIndex(t => t.id === overId);
+                // If we drop OVER a task, do we put it before or after? closestCenter implies replace.
+                // Let's just use insertIndex.
+            }
+
+            const newTargetList = [...targetTasks];
+            newTargetList.splice(insertIndex, 0, activeTask);
+
+            reorderMut.mutate({
+                items: newTargetList.map((t, i) => ({ id: t.id, position: i, projectSectionId: targetSectionId }))
+            });
+        }
     };
+
+    if (!hasSections) {
+        // Flat list behavior (legacy) with SortableContext
+        return (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-2">
+                        {tasks.map(task => <SortableTaskItem key={task.id} task={task} onSelect={setSelectedTaskId} />)}
+                    </div>
+                </SortableContext>
+                {/* ... Overlay ... */}
+                <DragOverlay>{activeTask ? <TaskCard task={activeTask} isDragging /> : null}</DragOverlay>
+                {selectedTaskId && <TaskDetailDrawer taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />}
+            </DndContext>
+        );
+    }
+
+    // Render Grouped List
+    const sectionsToRender = [
+        // Uncategorized if any
+        ...(tasks.some(t => !t.projectSectionId) ? [{ id: "uncategorized", name: "Без секции", position: -1 }] : []),
+        ...projectSections
+    ];
 
     return (
         <>
@@ -119,22 +241,47 @@ export function ListView({ tasks }: { tasks: Task[] }) {
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
             >
-                <SortableContext
-                    items={tasks.map((t) => t.id)}
-                    strategy={verticalListSortingStrategy}
-                >
-                    <div className="space-y-2">
-                        {tasks.map((task) => (
-                            <SortableTaskItem
-                                key={task.id}
-                                task={task}
-                                onSelect={setSelectedTaskId}
-                            />
-                        ))}
-                    </div>
-                </SortableContext>
+                <div className="space-y-8 pb-10">
+                    {sectionsToRender.map(section => {
+                        const sectionId = section.id === "uncategorized" ? null : section.id;
+                        const sectionTasks = tasks.filter(t => (sectionId ? t.projectSectionId === sectionId : !t.projectSectionId));
 
-                {/* Drag overlay */}
+                        return (
+                            <div key={section.id} className="space-y-3">
+                                <div className="flex items-center gap-2 border-b border-slate-700/50 pb-2">
+                                    <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider">
+                                        {section.name}
+                                    </h3>
+                                    <span className="text-xs bg-slate-800 text-slate-500 px-2 py-0.5 rounded-full">
+                                        {sectionTasks.length}
+                                    </span>
+                                </div>
+
+                                <SortableContext
+                                    id={section.id} // Container ID
+                                    items={sectionTasks.map(t => t.id)}
+                                    strategy={verticalListSortingStrategy}
+                                >
+                                    <div className="space-y-2 min-h-[50px]" /* min-height for drop target */>
+                                        {sectionTasks.map((task) => (
+                                            <SortableTaskItem
+                                                key={task.id}
+                                                task={task}
+                                                onSelect={setSelectedTaskId}
+                                            />
+                                        ))}
+                                        {sectionTasks.length === 0 && (
+                                            <div className="h-10 border-2 border-dashed border-slate-800/50 rounded-lg flex items-center justify-center text-xs text-slate-600">
+                                                Перетащите задачи сюда
+                                            </div>
+                                        )}
+                                    </div>
+                                </SortableContext>
+                            </div>
+                        );
+                    })}
+                </div>
+
                 <DragOverlay dropAnimation={{
                     duration: 200,
                     easing: "cubic-bezier(0.25, 1, 0.5, 1)",
@@ -146,15 +293,6 @@ export function ListView({ tasks }: { tasks: Task[] }) {
                     ) : null}
                 </DragOverlay>
             </DndContext>
-
-            {tasks.length === 0 && (
-                <div className="text-center py-12 text-slate-600">
-                    <svg className="w-16 h-16 mx-auto mb-4 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                    <p>Задач пока нет</p>
-                </div>
-            )}
 
             {selectedTaskId && (
                 <TaskDetailDrawer

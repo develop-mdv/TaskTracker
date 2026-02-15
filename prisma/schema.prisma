@@ -29,12 +29,14 @@ model Project {
   archived    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   tasks          Task[]
   boardColumns   BoardColumn[]
+  sections       ProjectSection[]
   viewPreferences ViewPreference[]
 
   @@index([userId])
@@ -76,6 +78,10 @@ model Task {
   projectId String?
   project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
+  projectSectionId String?
+  projectSection   ProjectSection? @relation(fields: [projectSectionId], references: [id], onDelete: SetNull)
+  deletedFromProjectId String?
+
   // Kanban column (optional, used in kanban view)
   boardColumnId String?
   boardColumn   BoardColumn? @relation(fields: [boardColumnId], references: [id], onDelete: SetNull)
@@ -103,6 +109,7 @@ model Task {
 
   @@index([userId])
   @@index([projectId])
+  @@index([projectSectionId])
   @@index([section])
   @@index([boardColumnId])
   @@index([deletedAt])
@@ -172,4 +179,19 @@ model ViewPreference {
   @@unique([userId, section])
   @@unique([userId, projectId])
   @@index([userId])
+}
+
+model ProjectSection {
+  id        String   @id @default(cuid())
+  name      String
+  position  Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  tasks Task[]
+
+  @@index([projectId])
 }

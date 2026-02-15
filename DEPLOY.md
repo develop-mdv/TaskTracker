@@ -179,26 +179,79 @@ mkdir -p /opt/backups
 
 ---
 
-## Шаг 7. Обновление приложения
+## Шаг 7. Безопасное обновление приложения
 
-При пуше нового кода:
+При выходе новых версий (особенно с изменениями в базе данных) следуйте этому алгоритму, чтобы не потерять данные.
+
+### 1. Подготовка и Бэкап (ОБЯЗАТЕЛЬНО)
+
+Перед обновлением сохраните текущее состояние базы данных.
 
 ```bash
 cd /opt/tasktracker
+
+# 1. Скачиваем обновления кода, но пока не применяем
 git pull
-docker compose --profile production up -d --build
-docker compose restart nginx  # nginx кеширует IP контейнера app — нужен рестарт
+
+# 2. Создаем бэкап базы данных (PostgreSQL)
+# Файл сохранится в /opt/backups/manual_backup_YYYYMMDD.sql
+mkdir -p /opt/backups
+docker compose exec -T postgres pg_dump -U postgres tasktracker > /opt/backups/manual_backup_$(date +%Y%m%d_%H%M).sql
+
+# (Опционально) Бэкап файлов (MinIO)
+# Если менялась структура хранения файлов
+docker run --rm \
+  -v myboroda_tasks_minio_data:/data \
+  -v /opt/backups:/backup \
+  alpine tar czf /backup/minio_backup_$(date +%Y%m%d_%H%M).tar.gz /data
 ```
 
-> ℹ️ `prisma db push` и `prisma db seed` выполняются **автоматически** при старте контейнера `app` (см. `docker-entrypoint.sh`). Вручную их запускать не нужно.
->
-> ⚠️ После пересборки `app` обязательно перезапустите `nginx` — иначе будет ошибка 502, т.к. nginx кеширует IP-адрес контейнера.
+### 2. Применение миграций БД
 
-Проверить что всё поднялось:
+Если в обновлении есть изменения в `prisma/schema.prisma` (новые таблицы, поля), нужно обновить структуру БД.
+
+**Вариант А: Автоматически (Простой)**
+При перезапуске контейнера `app` скрипт запуска автоматически выполняет `prisma db push`.
+Если изменений немного и они безопасные (добавление полей), можно просто перезапустить.
+
+**Вариант Б: Вручную (Безопасный)**
+Если вы хотите убедиться, что данные не потеряются (например, при переименовании полей):
+
 ```bash
-docker compose --profile production ps
-docker compose logs app --tail 20
+# Заходим в контейнер
+docker compose exec app sh
+
+# Проверяем статус миграции (без применения)
+# Если команда недоступна, используем npx
+npx prisma migrate status
+
+# Или пробуем push с подтверждением (покажет предупреждения если есть риск потери данных)
+npx prisma db push --skip-generate
+
+exit
 ```
+
+### 3. Сборка и Перезапуск
+
+```bash
+# Пересобираем и запускаем контейнеры в фоне
+docker compose --profile production up -d --build
+
+# Перезапускаем nginx (ОБЯЗАТЕЛЬНО после пересборки app, чтобы обновить IP)
+docker compose --profile production restart nginx
+```
+
+### 4. Проверка
+
+```bash
+# Смотрим логи приложения (нет ли ошибок Prisma)
+docker compose logs app --tail 50
+
+# Проверяем статус
+docker compose --profile production ps
+```
+
+> ⚠️ **Важно**: Если после обновления сайт выдает "502 Bad Gateway", выполните `docker compose --profile production restart nginx`.
 
 ---
 
