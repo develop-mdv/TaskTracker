@@ -99,7 +99,7 @@ const SortableTaskItem = memo(function SortableTaskItem({
 // This component is kept for the "no sections" view or "column header" usage.
 // We'll refactor it slightly to be reusable.
 
-const ColumnHeader = ({ title, color, count, onDelete, onEdit, dragHandleProps }: any) => {
+const ColumnHeader = ({ title, color, count, onDelete, onEdit, onAdd, dragHandleProps }: any) => {
     return (
         <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-700/30">
             <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -124,6 +124,13 @@ const ColumnHeader = ({ title, color, count, onDelete, onEdit, dragHandleProps }
                 <span className="text-xs text-slate-600 flex-shrink-0">{count}</span>
             </div>
             <div className="flex items-center gap-0.5">
+                {onAdd && (
+                    <button onClick={onAdd} className="p-1 rounded text-slate-600 hover:text-indigo-400 hover:bg-slate-800 transition" title="Добавить задачу">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                    </button>
+                )}
                 {onDelete && (
                     <button onClick={onDelete} className="p-1 rounded text-slate-600 hover:text-red-400 hover:bg-slate-800 transition">
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -145,6 +152,9 @@ const KanbanCell = memo(function KanbanCell({
     onSelectTask,
     onAddTask,
     isActiveDropTarget,
+    isCreating,
+    onCreateSubmit,
+    onCreateCancel,
 }: {
     columnId: string;
     sectionId: string | null;
@@ -152,9 +162,13 @@ const KanbanCell = memo(function KanbanCell({
     onSelectTask: (id: string) => void;
     onAddTask: (colId: string) => void;
     isActiveDropTarget: boolean;
+    isCreating?: boolean;
+    onCreateSubmit?: (title: string) => void;
+    onCreateCancel?: () => void;
 }) {
     // Unique ID for droppable: "sectionID:columnID" or "null:columnID"
     const droppableId = `${sectionId ?? "null"}:${columnId}`;
+    const [inlineTitle, setInlineTitle] = useState("");
 
     const { setNodeRef, isOver } = useDroppable({
         id: droppableId,
@@ -166,7 +180,7 @@ const KanbanCell = memo(function KanbanCell({
     return (
         <div
             ref={setNodeRef}
-            className={`flex-shrink-0 w-72 rounded-xl transition-all duration-200 min-h-[100px] bg-slate-900/40 border border-slate-700/30 ${isHighlighted ? "bg-slate-800/80 ring-2 ring-indigo-500/50" : ""
+            className={`group/cell flex-shrink-0 w-72 rounded-xl transition-all duration-200 min-h-[100px] bg-slate-900/40 border border-slate-700/30 ${isHighlighted ? "bg-slate-800/80 ring-2 ring-indigo-500/50" : ""
                 }`}
         >
             <div className="p-2 space-y-2 h-full flex flex-col">
@@ -176,21 +190,68 @@ const KanbanCell = memo(function KanbanCell({
                     ))}
                 </SortableContext>
 
-                {tasks.length === 0 && !isHighlighted && (
-                    <button
-                        onClick={() => onAddTask(columnId)}
-                        className="w-full py-2 flex items-center justify-center text-slate-600 hover:text-slate-400 opacity-0 hover:opacity-100 transition"
-                    >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                    </button>
-                )}
-
                 {isHighlighted && tasks.length === 0 && (
                     <div className="flex items-center justify-center py-6 border-2 border-dashed border-indigo-500/30 rounded-lg text-indigo-400/50 text-xs">
                         Отпустите здесь
                     </div>
+                )}
+
+                {/* Inline create form */}
+                {isCreating && onCreateSubmit && onCreateCancel && (
+                    <div className="mt-auto">
+                        <div className="bg-slate-800/60 border border-slate-700/50 rounded-lg p-2 space-y-2">
+                            <input
+                                type="text"
+                                value={inlineTitle}
+                                onChange={(e) => setInlineTitle(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && inlineTitle.trim()) {
+                                        onCreateSubmit(inlineTitle.trim());
+                                        setInlineTitle("");
+                                    }
+                                    if (e.key === "Escape") {
+                                        setInlineTitle("");
+                                        onCreateCancel();
+                                    }
+                                }}
+                                autoFocus
+                                placeholder="Название задачи..."
+                                className="w-full px-2.5 py-1.5 bg-slate-900/60 border border-slate-600/40 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 placeholder-slate-500"
+                            />
+                            <div className="flex gap-1.5 justify-end">
+                                <button
+                                    onClick={() => { setInlineTitle(""); onCreateCancel(); }}
+                                    className="px-2 py-1 text-xs text-slate-500 hover:text-slate-300 rounded transition"
+                                >
+                                    Отмена
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (inlineTitle.trim()) {
+                                            onCreateSubmit(inlineTitle.trim());
+                                            setInlineTitle("");
+                                        }
+                                    }}
+                                    className="px-2.5 py-1 text-xs bg-indigo-600 hover:bg-indigo-500 text-white rounded-md transition"
+                                >
+                                    Добавить
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Always-visible add task button */}
+                {!isCreating && (
+                    <button
+                        onClick={() => onAddTask(columnId)}
+                        className="mt-auto w-full py-1.5 flex items-center justify-center gap-1.5 text-slate-600 hover:text-indigo-400 hover:bg-slate-800/50 rounded-lg transition-all duration-200 text-xs"
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span>Добавить</span>
+                    </button>
                 )}
             </div>
         </div>
@@ -243,7 +304,7 @@ export function KanbanBoard({
     const createTask = trpc.tasks.create.useMutation({
         onSuccess: () => {
             utils.tasks.list.invalidate();
-            setShowCreateInColumn(null); // Close modal
+            // Keep form open for rapid additions — don't close
         },
     });
 
@@ -394,6 +455,7 @@ export function KanbanBoard({
                                         count={getTasks(col.id, null).length}
                                         onDelete={() => deleteColumn.mutate({ id: col.id })}
                                         onEdit={() => {/* TODO: inline edit */ }}
+                                        onAdd={() => setShowCreateInColumn({ columnId: col.id, sectionId: null })}
                                         dragHandleProps={{ ...useSortable({ id: `col-${col.id}`, data: { type: "column" } }).attributes, ...useSortable({ id: `col-${col.id}`, data: { type: "column" } }).listeners }}
                                     />
                                     <div className="flex-1 overflow-y-auto p-2">
@@ -404,6 +466,17 @@ export function KanbanBoard({
                                             onSelectTask={setSelectedTaskId}
                                             onAddTask={(colId) => setShowCreateInColumn({ columnId: colId, sectionId: null })}
                                             isActiveDropTarget={overContainerId === `null:${col.id}`}
+                                            isCreating={showCreateInColumn?.columnId === col.id && showCreateInColumn?.sectionId === null}
+                                            onCreateSubmit={(title) => {
+                                                createTask.mutate({
+                                                    title,
+                                                    section: projectId ? undefined : (section as "inbox" | undefined),
+                                                    projectId: projectId || undefined,
+                                                    boardColumnId: col.id,
+                                                    projectSectionId: null,
+                                                });
+                                            }}
+                                            onCreateCancel={() => setShowCreateInColumn(null)}
                                         />
                                     </div>
                                 </div>
@@ -494,6 +567,17 @@ export function KanbanBoard({
                                     onSelectTask={setSelectedTaskId}
                                     onAddTask={(colId) => setShowCreateInColumn({ columnId: colId, sectionId: sect.id ?? null })}
                                     isActiveDropTarget={overContainerId === `${sect.id ?? "null"}:${col.id}`}
+                                    isCreating={showCreateInColumn?.columnId === col.id && showCreateInColumn?.sectionId === (sect.id ?? null)}
+                                    onCreateSubmit={(title) => {
+                                        createTask.mutate({
+                                            title,
+                                            section: projectId ? undefined : (section as "inbox" | undefined),
+                                            projectId: projectId || undefined,
+                                            boardColumnId: col.id,
+                                            projectSectionId: sect.id ?? null,
+                                        });
+                                    }}
+                                    onCreateCancel={() => setShowCreateInColumn(null)}
                                 />
                             ))}
                         </div>
@@ -526,23 +610,7 @@ export function KanbanBoard({
                 />
             )}
 
-            {showCreateInColumn && (
-                <QuickCreateInColumn
-                    columnId={showCreateInColumn.columnId}
-                    projectId={projectId}
-                    section={section}
-                    onClose={() => setShowCreateInColumn(null)}
-                    onCreate={(title) => {
-                        createTask.mutate({
-                            title,
-                            section: projectId ? undefined : (section as "inbox" | undefined),
-                            projectId: projectId || undefined,
-                            boardColumnId: showCreateInColumn.columnId,
-                            projectSectionId: showCreateInColumn.sectionId,
-                        });
-                    }}
-                />
-            )}
+
         </DndContext>
     );
 }
