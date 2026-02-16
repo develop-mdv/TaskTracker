@@ -258,6 +258,46 @@ const KanbanCell = memo(function KanbanCell({
     );
 });
 
+/* ─── Sortable Column Header (for Matrix View) ─── */
+const SortableColumnHeader = memo(function SortableColumnHeader({
+    col,
+    taskCount,
+    onDelete,
+    onEdit,
+    onAdd,
+}: {
+    col: Column;
+    taskCount: number;
+    onDelete: () => void;
+    onEdit: () => void;
+    onAdd: () => void;
+}) {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+        id: `col-${col.id}`,
+        data: { type: "column" },
+    });
+    const style = {
+        transform: CSS.Translate.toString(transform),
+        transition,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} className="w-72 flex-shrink-0">
+            <div className="bg-slate-900/50 rounded-xl overflow-hidden">
+                <ColumnHeader
+                    title={col.name}
+                    color={col.color}
+                    count={taskCount}
+                    onDelete={onDelete}
+                    onEdit={onEdit}
+                    onAdd={onAdd}
+                    dragHandleProps={{ ...attributes, ...listeners }}
+                />
+            </div>
+        </div>
+    );
+});
+
 
 /* ─── Kanban Board ─── */
 export function KanbanBoard({
@@ -456,7 +496,6 @@ export function KanbanBoard({
                                         onDelete={() => deleteColumn.mutate({ id: col.id })}
                                         onEdit={() => {/* TODO: inline edit */ }}
                                         onAdd={() => setShowCreateInColumn({ columnId: col.id, sectionId: null })}
-                                        dragHandleProps={{ ...useSortable({ id: `col-${col.id}`, data: { type: "column" } }).attributes, ...useSortable({ id: `col-${col.id}`, data: { type: "column" } }).listeners }}
                                     />
                                     <div className="flex-1 overflow-y-auto p-2">
                                         <KanbanCell
@@ -526,22 +565,58 @@ export function KanbanBoard({
 
         return (
             <div className="flex flex-col gap-8 pb-10 min-w-fit">
-                {/* Header Row (Col Names) */}
+                {/* Header Row (Col Names with full controls) */}
                 <div className="flex gap-4 sticky top-0 z-20 bg-slate-950/80 backdrop-blur-md py-2 border-b border-slate-800">
                     <div className="w-6 shrink-0" />
                     <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
                         {columns.map(col => (
-                            <div key={col.id} className="w-72 px-2">
-                                <SortableItem id={`col-${col.id}`}>
-                                    <div className="flex items-center gap-2 font-semibold text-slate-300">
-                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: col.color || "#64748b" }} />
-                                        {col.name}
-                                        <span className="text-xs text-slate-600 ml-auto">{getTasksByColumn(col.id).length}</span>
-                                    </div>
-                                </SortableItem>
-                            </div>
+                            <SortableColumnHeader
+                                key={col.id}
+                                col={col}
+                                taskCount={getTasksByColumn(col.id).length}
+                                onDelete={() => deleteColumn.mutate({ id: col.id })}
+                                onEdit={() => {/* TODO: inline edit */ }}
+                                onAdd={() => setShowCreateInColumn({ columnId: col.id, sectionId: null })}
+                            />
                         ))}
                     </SortableContext>
+
+                    {/* Add Column Button */}
+                    <div className="flex-shrink-0 w-72">
+                        {newColumnName !== "" ? (
+                            <div className="bg-slate-900/50 rounded-xl p-3">
+                                <input
+                                    type="text"
+                                    value={newColumnName}
+                                    onChange={(e) => setNewColumnName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" && newColumnName.trim()) {
+                                            createColumn.mutate({
+                                                name: newColumnName.trim(),
+                                                projectId: projectId || undefined,
+                                                section: section || undefined,
+                                            });
+                                            setNewColumnName("");
+                                        }
+                                        if (e.key === "Escape") setNewColumnName("");
+                                    }}
+                                    autoFocus
+                                    placeholder="Название колонки"
+                                    className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                />
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => setNewColumnName(" ")}
+                                className="w-full py-4 border-2 border-dashed border-slate-700/30 rounded-xl text-slate-600 hover:text-slate-400 hover:border-slate-600/50 transition flex items-center justify-center gap-2 text-sm"
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                Колонка
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* Swimlanes */}
