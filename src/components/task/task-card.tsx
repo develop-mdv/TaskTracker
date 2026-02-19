@@ -176,7 +176,7 @@ export const TaskCard = memo(function TaskCard({
                 taskTitle={task.title}
                 isOpen={isCompleteDialogOpen}
                 onClose={() => setIsCompleteDialogOpen(false)}
-                onComplete={(note) => completeMut.mutate({ id: task.id, completionNote: note })}
+                onComplete={(note) => completeMut.mutateAsync({ id: task.id, completionNote: note })}
             />
         </div >
     );

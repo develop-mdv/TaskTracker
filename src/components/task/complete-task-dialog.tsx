@@ -29,6 +29,9 @@ export function CompleteTaskDialog({
             await onComplete(note.trim() || undefined);
             setNote("");
             onClose();
+        } catch (error) {
+            console.error("Failed to complete task:", error);
+            alert("Не удалось завершить задачу. Попробуйте еще раз.");
         } finally {
             setIsSubmitting(false);
         }
