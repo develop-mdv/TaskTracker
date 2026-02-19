@@ -100,7 +100,7 @@ const SortableTaskItem = memo(function SortableTaskItem({
 // This component is kept for the "no sections" view or "column header" usage.
 // We'll refactor it slightly to be reusable.
 
-const ColumnHeader = ({ title, color, count, onDelete, onEdit, onAdd, dragHandleProps }: any) => {
+const ColumnHeader = ({ title, color, count, onDelete, onEdit, onAdd, onCopy, onDownload, dragHandleProps }: any) => {
     return (
         <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-700/30">
             <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -125,6 +125,20 @@ const ColumnHeader = ({ title, color, count, onDelete, onEdit, onAdd, dragHandle
                 <span className="text-xs text-slate-600 flex-shrink-0">{count}</span>
             </div>
             <div className="flex items-center gap-0.5">
+                {onCopy && (
+                    <button onClick={onCopy} className="p-1 rounded text-slate-600 hover:text-indigo-400 hover:bg-slate-800 transition" title="Копировать задачи">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                        </svg>
+                    </button>
+                )}
+                {onDownload && (
+                    <button onClick={onDownload} className="p-1 rounded text-slate-600 hover:text-indigo-400 hover:bg-slate-800 transition" title="Скачать задачи">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                    </button>
+                )}
                 {onAdd && (
                     <button onClick={onAdd} className="p-1 rounded text-slate-600 hover:text-indigo-400 hover:bg-slate-800 transition" title="Добавить задачу">
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -133,7 +147,7 @@ const ColumnHeader = ({ title, color, count, onDelete, onEdit, onAdd, dragHandle
                     </button>
                 )}
                 {onDelete && (
-                    <button onClick={onDelete} className="p-1 rounded text-slate-600 hover:text-red-400 hover:bg-slate-800 transition">
+                    <button onClick={onDelete} className="p-1 rounded text-slate-600 hover:text-red-400 hover:bg-slate-800 transition" title="Удалить колонку">
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -156,6 +170,9 @@ const KanbanCell = memo(function KanbanCell({
     isCreating,
     onCreateSubmit,
     onCreateCancel,
+    header, // Optional custom header logic if needed
+    onCopy,     // New prop
+    onDownload  // New prop
 }: {
     columnId: string;
     sectionId: string | null;
@@ -163,17 +180,22 @@ const KanbanCell = memo(function KanbanCell({
     onSelectTask: (id: string) => void;
     onAddTask: (colId: string) => void;
     isActiveDropTarget: boolean;
-    isCreating?: boolean;
-    onCreateSubmit?: (title: string) => void;
-    onCreateCancel?: () => void;
+    isCreating: boolean;
+    onCreateSubmit: (title: string) => void;
+    onCreateCancel: () => void;
+    header?: React.ReactNode;
+    onCopy?: () => void;
+    onDownload?: () => void;
 }) {
     // Unique ID for droppable: "sectionID:columnID" or "null:columnID"
-    const droppableId = `${sectionId ?? "null"}:${columnId}`;
     const [inlineTitle, setInlineTitle] = useState("");
+
+    // Unique ID for droppable: "sectionID:columnID" or "null:columnID"
+    const droppableId = `${sectionId ?? "null"}:${columnId}`;
 
     const { setNodeRef, isOver } = useDroppable({
         id: droppableId,
-        data: { type: "cell", columnId, sectionId },
+        data: { type: "cell", columnId, sectionId }
     });
 
     const isHighlighted = isOver || isActiveDropTarget;
@@ -181,10 +203,35 @@ const KanbanCell = memo(function KanbanCell({
     return (
         <div
             ref={setNodeRef}
-            className={`group/cell flex-shrink-0 w-72 rounded-xl transition-all duration-200 min-h-[100px] bg-slate-900/40 border border-slate-700/30 ${isHighlighted ? "bg-slate-800/80 ring-2 ring-indigo-500/50" : ""
-                }`}
+            className={`flex-shrink-0 w-80 flex flex-col rounded-xl bg-slate-900/40 border ${isActiveDropTarget ? "border-indigo-500/50 bg-indigo-500/10" : "border-slate-800/50"
+                } transition-colors min-h-[150px]`}
         >
-            <div className="p-2 space-y-2 h-full flex flex-col">
+            {/* If we aren't using a global header, we might want per-cell headers? 
+                Actually, usually Matrix view has headers on top row only. 
+                But for Simple View (no sections), we render ColumnHeader inside the map loop. 
+                Wait, let's look at usage. */}
+
+            {/* 
+               If this is the top row (or we only have one row), we might render header? 
+               In current code (lines 740+), we just render KanbanCell. 
+               The ColumnHeader is handled by the "Simple View" branch or separate column branch. 
+               
+               Wait, the KanbanCell is used inside the sections map for the MAIN detailed view.
+               BUT the headers are rendered at the top of the columns SEPARATELY? 
+               Checking `renderContent`...
+               
+               Ah, `sectionsToRender.map(sect => ...)` renders a row per section. 
+               And inside that, `columns.map(col => KanbanCell)`.
+               
+               There are NO column headers inside KanbanCell in this view! 
+               The headers are ... wait, where are the headers in Matrix view?
+               
+               Line 620-660 for Matrix view column headers.
+            */}
+
+            {header}
+
+            <div className="p-3 flex-1 flex flex-col gap-3">
                 <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
                     {tasks.map((task) => (
                         <SortableTaskItem key={task.id} task={task} onSelect={onSelectTask} />
@@ -617,79 +664,58 @@ export function KanbanBoard({
                                 Добавить колонку
                             </button>
                         )}
-
-
                     </div>
                 </div>
             );
         }
 
+        // Matrix View (With Sections)
         return (
-            <div className="flex flex-col gap-8 pb-10 min-w-fit">
-                {/* Header Row (Col Names with full controls) */}
-                <div className="flex gap-4 sticky top-0 z-20 bg-slate-950/80 backdrop-blur-md py-2 border-b border-slate-800">
-                    <div className="w-6 shrink-0" />
-                    <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
-                        {columns.map(col => (
-                            <SortableColumnHeader
-                                key={col.id}
-                                col={col}
-                                taskCount={getTasksByColumn(col.id).length}
-                                onDelete={() => deleteColumn.mutate({ id: col.id })}
-                                onEdit={() => {/* TODO: inline edit */ }}
-                                onAdd={() => setShowCreateInColumn({ columnId: col.id, sectionId: null })}
+            <div className="flex-1 overflow-x-auto overflow-y-auto pl-4">
+                {/* Sticky Header Row for Columns */}
+                <div className="sticky top-0 z-20 flex gap-4 pl-6 pb-2 pt-2 bg-slate-950/80 backdrop-blur-md border-b border-slate-800 min-w-max">
+                    {columns.map(col => (
+                        <div key={col.id} className="w-80 flex-shrink-0">
+                            <ColumnHeader
+                                title={col.name}
+                                color={col.color}
+                                count={tasks.filter(t => t.boardColumnId === col.id).length}
+                                // No delete/edit in matrix header usually, or maybe yes?
+                                // Let's keep it simple for now, just label
+                                onCopy={() => {
+                                    // Export ALL tasks in this column across all sections?
+                                    // Logic: filter tasks by columnId
+                                    const colTasks = tasks.filter(t => t.boardColumnId === col.id);
+                                    const exportable = colTasks.map(t => ({
+                                        ...t,
+                                        section: t.section ? { name: t.section } : null,
+                                        projectSection: t.projectSectionId ? { name: projectSections.find(s => s.id === t.projectSectionId)?.name || "Unknown" } : null
+                                    }));
+                                    copyToClipboard(formatTasksToText(exportable as any, col.name));
+                                    alert("Скопировано!");
+                                }}
+                                onDownload={() => {
+                                    // Export ALL tasks in this column across all sections
+                                    const colTasks = tasks.filter(t => t.boardColumnId === col.id);
+                                    const exportable = colTasks.map(t => ({
+                                        ...t,
+                                        section: t.section ? { name: t.section } : null,
+                                        projectSection: t.projectSectionId ? { name: projectSections.find(s => s.id === t.projectSectionId)?.name || "Unknown" } : null
+                                    }));
+                                    downloadAsFile(formatTasksToText(exportable as any, col.name), `${col.name}.txt`);
+                                }}
                             />
-                        ))}
-                    </SortableContext>
-
-                    {/* Add Column Button */}
-                    <div className="flex-shrink-0 w-72 flex flex-col gap-2">
-                        {newColumnName !== "" ? (
-                            <div className="bg-slate-900/50 rounded-xl p-3">
-                                <input
-                                    type="text"
-                                    value={newColumnName}
-                                    onChange={(e) => setNewColumnName(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter" && newColumnName.trim()) {
-                                            createColumn.mutate({
-                                                name: newColumnName.trim(),
-                                                projectId: projectId || undefined,
-                                                section: section || undefined,
-                                            });
-                                            setNewColumnName("");
-                                        }
-                                        if (e.key === "Escape") setNewColumnName("");
-                                    }}
-                                    autoFocus
-                                    placeholder="Название колонки"
-                                    className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-                                />
-                            </div>
-                        ) : (
-                            <button
-                                onClick={() => setNewColumnName(" ")}
-                                className="w-full py-4 border-2 border-dashed border-slate-700/30 rounded-xl text-slate-600 hover:text-slate-400 hover:border-slate-600/50 transition flex items-center justify-center gap-2 text-sm"
-                            >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                </svg>
-                                Колонка
-                            </button>
-                        )}
-
-
-                    </div>
+                        </div>
+                    ))}
                 </div>
 
                 {/* Swimlanes */}
                 {sectionsToRender.map(sect => (
-                    <div key={sect.id ?? "uncat"} className="flex flex-col gap-2">
+                    <div key={sect.id ?? "uncat"} className="flex flex-col gap-2 mt-4">
                         {/* Section Header */}
-                        <div className="sticky left-0 z-10 bg-slate-950/50 backdrop-blur-sm px-4 py-1 flex items-center gap-2 border-b border-slate-800/50 w-full">
+                        <div className="sticky left-0 z-10 bg-slate-900/90 backdrop-blur-sm px-4 py-1.5 flex items-center gap-2 border-y border-slate-800 w-full shadow-sm">
                             <h3 className="text-lg font-bold text-white">{sect.name}</h3>
-                            <span className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">
-                                {/* Count tasks in section? */}
+                            <span className="text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700">
                                 {tasks.filter(t => (sect.id ? t.projectSectionId === sect.id : !t.projectSectionId)).length}
                             </span>
                         </div>
@@ -762,17 +788,6 @@ export function KanbanBoard({
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
         >
-            <KanbanToolbar
-                onCopy={() => {
-                    const text = formatTasksToText(tasks, "Exported Tasks");
-                    copyToClipboard(text);
-                    alert("Задачи скопированы в буфер обмена");
-                }}
-                onDownload={() => {
-                    const text = formatTasksToText(tasks, "Exported Tasks");
-                    downloadAsFile(text, `tasks-${new Date().toISOString().split('T')[0]}.txt`);
-                }}
-            />
 
             {renderContent()}
 

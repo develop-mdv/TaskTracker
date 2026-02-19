@@ -3,6 +3,7 @@
 import { memo, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { CompleteTaskDialog } from "./complete-task-dialog";
+import { copyToClipboard, formatTaskToText } from "@/lib/export-utils";
 
 interface Task {
     id: string;
@@ -108,7 +109,7 @@ export const TaskCard = memo(function TaskCard({
                 )}
 
                 <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 relative">
                         <span className={`text-sm font-medium ${isCompleted ? "line-through text-slate-500" : "text-white"}`}>
                             {task.title}
                         </span>
@@ -117,6 +118,23 @@ export const TaskCard = memo(function TaskCard({
                                 {p.label}
                             </span>
                         )}
+
+                        {/* Copy Button (Hover) */}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                copyToClipboard(formatTaskToText(task as any));
+                                // Simple alert or toast? Let's use a small visual indicator or standard alert for now
+                                // alert("!"); // Too intrusive
+                                // Ideally a toast, but I don't see toast lib.
+                            }}
+                            className="hidden group-hover:block ml-auto p-1 text-slate-500 hover:text-indigo-400 bg-slate-800/80 rounded"
+                            title="Копировать текст задачи"
+                        >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                            </svg>
+                        </button>
                     </div>
 
                     {task.description && (

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
+import { formatTasksToText, downloadAsFile } from "@/lib/export-utils";
 import { useRouter } from "next/navigation";
 
 const COLORS = [
@@ -135,23 +136,45 @@ export function ProjectSettingsModal({ projectId, onClose }: ProjectSettingsModa
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-2">
-                                    Цвет иконки
-                                </label>
-                                <div className="flex gap-2 flex-wrap">
+                                <label className="block text-sm font-medium text-slate-400 mb-2">Цвет проекта</label>
+                                <div className="flex gap-3 flex-wrap">
                                     {COLORS.map((c) => (
                                         <button
                                             key={c}
-                                            type="button"
-                                            onClick={() => setColor(c)}
-                                            className={`w-8 h-8 rounded-lg transition-all ${color === c
-                                                ? "ring-2 ring-white ring-offset-2 ring-offset-slate-900 scale-110"
-                                                : "hover:scale-105"
+                                            onClick={() => {
+                                                setColor(c); // Update local state immediately for UI feedback
+                                                updateProject.mutate({ id: projectId, color: c });
+                                            }}
+                                            className={`w-8 h-8 rounded-full transition-all ${color === c ? "ring-2 ring-white scale-110" : "hover:scale-110 opacity-70 hover:opacity-100"
                                                 }`}
                                             style={{ backgroundColor: c }}
                                         />
                                     ))}
                                 </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-slate-700/50">
+                                <h3 className="text-sm font-medium text-slate-400 mb-3">Экспорт проекта</h3>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            // Fetch all tasks for this project (including archived)
+                                            const allTasks = await utils.tasks.list.fetch({ projectId, includeCompleted: true });
+                                            // Format and download
+                                            const text = formatTasksToText(allTasks as any, name);
+                                            downloadAsFile(text, `${name.replace(/\s+/g, '_')}_export.txt`);
+                                        } catch (e) {
+                                            console.error("Export failed:", e);
+                                            alert("Ошибка при экспорте задач.");
+                                        }
+                                    }}
+                                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition flex items-center gap-2 text-sm border border-slate-700"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                    Скачать все задачи проекта
+                                </button>
                             </div>
                         </div>
                     ) : (

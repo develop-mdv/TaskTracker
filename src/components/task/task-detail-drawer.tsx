@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { trpc } from "@/lib/trpc";
+import { formatTaskToText, copyToClipboard, downloadAsFile } from "@/lib/export-utils";
 
 const PRIORITIES = [
     { value: 0, label: "Без приоритета" },
@@ -137,8 +138,8 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                 }
                             }}
                             className={`px-3 py-1.5 text-xs rounded-lg font-medium transition ${isCompleted
-                                    ? "bg-green-500/10 text-green-400 hover:bg-green-500/20"
-                                    : "bg-slate-800 text-slate-400 hover:bg-indigo-500/20 hover:text-indigo-400"
+                                ? "bg-green-500/10 text-green-400 hover:bg-green-500/20"
+                                : "bg-slate-800 text-slate-400 hover:bg-indigo-500/20 hover:text-indigo-400"
                                 }`}
                         >
                             {isCompleted ? "✓ Выполнено" : "Выполнить"}

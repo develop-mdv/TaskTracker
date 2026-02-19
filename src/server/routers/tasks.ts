@@ -10,6 +10,7 @@ const taskFilterSchema = z.object({
     archived: z.boolean().optional(),
     deleted: z.boolean().optional(),
     boardColumnId: z.string().optional(),
+    includeCompleted: z.boolean().optional(), // Fetch all non-deleted tasks
 });
 
 export const tasksRouter = router({
@@ -26,10 +27,12 @@ export const tasksRouter = router({
                 where.deletedAt = null;
             }
 
-            if (input.archived) {
+            if (input.includeCompleted) {
+                // Fetch all non-deleted tasks (active + fully archived)
+                // No additional filtering on completedAt
+            } else if (input.archived) {
                 // Show only completed (archived)
                 where.completedAt = { not: null };
-                where.deletedAt = null;
             } else if (!input.deleted) {
                 // Show active tasks OR tasks completed TODAY
                 const today = new Date();
@@ -39,7 +42,6 @@ export const tasksRouter = router({
                     { completedAt: null },
                     { completedAt: { gte: today } }
                 ];
-                where.deletedAt = null;
             }
 
             if (input.today) {
@@ -355,14 +357,15 @@ export const tasksRouter = router({
 
             if (task) {
                 // Find a "Done" column in the task's scope (project or global)
-                // Note: BoardColumns are currently global or per-project? 
                 // Schema says: projectId String? @relation...
+                // BoardColumn does not have userId, so we filter only by context (projectId or section)
 
-                const whereClause: any = { userId: ctx.userId };
+                const whereClause: any = {};
                 if (task.projectId) {
                     whereClause.projectId = task.projectId;
                 } else {
                     whereClause.projectId = null;
+                    whereClause.section = "inbox";
                 }
 
                 const columns = await ctx.prisma.boardColumn.findMany({
