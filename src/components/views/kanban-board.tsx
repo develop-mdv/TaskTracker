@@ -575,11 +575,35 @@ export function KanbanBoard({
     // Actually [tasks] might loop if optimistically updated. 
     // But `bulkMove` will set boardColumnId, so they won't be unallocated anymore. Safe.
 
-    // Render Helper
+    // Helper Component for Simple View Column
+    const SortableColumn = ({ col, children }: { col: Column, children: React.ReactNode }) => {
+        const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+            id: `col-${col.id}`,
+            data: { type: "column" },
+        });
+        const style = {
+            transform: CSS.Translate.toString(transform),
+            transition,
+        };
+
+        return (
+            <div ref={setNodeRef} style={style} className="flex flex-col gap-2 h-full">
+                {/* Pass attributes/listeners to children via cloneElement or context? 
+                     Actually, we can just render the header here if we want?
+                     Or we expect children to be the whole column content?
+                     
+                     Let's make this component responsible for rendering the specific Simple View column structure
+                     so we can pass dragHandleProps to the header.
+                  */}
+                {children}
+            </div>
+        );
+    };
+
+    // Refactored Render Content
     const renderContent = () => {
         // If we have sections, we render Matrix View
         const hasSections = projectSections.length > 0;
-
         const hasUncategorized = tasks.some(t => !t.projectSectionId);
 
         const sectionsToRender = [
@@ -587,84 +611,72 @@ export function KanbanBoard({
             ...projectSections
         ];
 
-        if (!hasSections && !hasUncategorized) {
-            // Fallback/Legacy View (Single Row)
-            return (
-                <div className="flex gap-4 h-full pb-4">
-                    {columns.map(col => (
-                        <div key={col.id} className="flex flex-col gap-2">
-                            <SortableContext items={[col.id]} id={`col-${col.id}`}>
-                                <div className="w-72 bg-slate-900/50 rounded-xl flex flex-col max-h-full">
-                                    <ColumnHeader
-                                        title={col.name}
-                                        color={col.color}
-                                        count={getTasks(col.id, null).length}
-                                        onDelete={() => deleteColumn.mutate({ id: col.id })}
-                                        onEdit={() => {/* TODO: inline edit */ }}
-                                        onAdd={() => setShowCreateInColumn({ columnId: col.id, sectionId: null })}
-                                    />
-                                    <div className="flex-1 overflow-y-auto p-2">
-                                        <KanbanCell
-                                            columnId={col.id}
-                                            sectionId={null}
-                                            tasks={getTasks(col.id, null)}
-                                            onSelectTask={setSelectedTaskId}
-                                            onAddTask={(colId) => setShowCreateInColumn({ columnId: colId, sectionId: null })}
-                                            isActiveDropTarget={overContainerId === `null:${col.id}`}
-                                            isCreating={showCreateInColumn?.columnId === col.id && showCreateInColumn?.sectionId === null}
-                                            onCreateSubmit={(title) => {
-                                                createTask.mutate({
-                                                    title,
-                                                    section: projectId ? undefined : (section as "inbox" | undefined),
-                                                    projectId: projectId || undefined,
-                                                    boardColumnId: col.id,
-                                                    projectSectionId: null,
-                                                });
-                                            }}
-                                            onCreateCancel={() => setShowCreateInColumn(null)}
-                                        />
-                                    </div>
-                                </div>
-                            </SortableContext>
-                        </div>
-                    ))}
-
-                    {/* Add Column Button (Legacy) */}
-                    <div className="flex-shrink-0 w-72">
-                        {newColumnName !== "" ? (
-                            <div className="bg-slate-900/50 rounded-xl p-3">
-                                <input
-                                    type="text"
-                                    value={newColumnName}
-                                    onChange={(e) => setNewColumnName(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter" && newColumnName.trim()) {
-                                            createColumn.mutate({
-                                                name: newColumnName.trim(),
-                                                projectId: projectId || undefined,
-                                                section: section || undefined,
-                                            });
-                                            setNewColumnName("");
-                                        }
-                                        if (e.key === "Escape") setNewColumnName("");
-                                    }}
-                                    autoFocus
-                                    placeholder="Название колонки"
-                                    className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-                                />
-                            </div>
-                        ) : (
-                            <button
-                                onClick={() => setNewColumnName(" ")}
-                                className="w-full py-8 border-2 border-dashed border-slate-700/30 rounded-xl text-slate-600 hover:text-slate-400 hover:border-slate-600/50 transition flex items-center justify-center gap-2 text-sm"
-                            >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                </svg>
-                                Добавить колонку
-                            </button>
-                        )}
+        // Shared "Add Column" UI
+        const AddColumnUI = () => (
+            <div className="flex-shrink-0 w-72">
+                {newColumnName !== "" ? (
+                    <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-700/50">
+                        <input
+                            type="text"
+                            value={newColumnName}
+                            onChange={(e) => setNewColumnName(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && newColumnName.trim()) {
+                                    createColumn.mutate({
+                                        name: newColumnName.trim(),
+                                        projectId: projectId || undefined,
+                                        section: section || undefined,
+                                    });
+                                    setNewColumnName("");
+                                }
+                                if (e.key === "Escape") setNewColumnName("");
+                            }}
+                            autoFocus
+                            placeholder="Название колонки"
+                            className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                        />
                     </div>
+                ) : (
+                    <button
+                        onClick={() => setNewColumnName(" ")}
+                        className="w-full py-4 border-2 border-dashed border-slate-700/30 rounded-xl text-slate-500 hover:text-slate-300 hover:border-slate-600/50 transition flex items-center justify-center gap-2 text-sm"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Добавить колонку
+                    </button>
+                )}
+            </div>
+        );
+
+        if (!hasSections && !hasUncategorized) {
+            // Fallback/Legacy View (Single Row / Simple View)
+            return (
+                <div className="flex gap-4 h-full pb-4 items-start">
+                    <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
+                        {columns.map(col => {
+                            // We need to use a specialized component to hook into useSortable 
+                            // AND pass the listeners to the header.
+                            return (
+                                <SortableSimpleColumn
+                                    key={col.id}
+                                    col={col}
+                                    tasks={getTasks(col.id, null)}
+                                    onDelete={() => deleteColumn.mutate({ id: col.id })}
+                                    onAdd={() => setShowCreateInColumn({ columnId: col.id, sectionId: null })}
+                                    onSelectTask={setSelectedTaskId}
+                                    overContainerId={overContainerId}
+                                    showCreateInColumn={showCreateInColumn}
+                                    createTask={createTask}
+                                    projectId={projectId}
+                                    section={section}
+                                    projectSections={projectSections}
+                                    setShowCreateInColumn={setShowCreateInColumn} />
+                            );
+                        })}
+                    </SortableContext>
+                    <AddColumnUI />
                 </div>
             );
         }
@@ -673,40 +685,20 @@ export function KanbanBoard({
         return (
             <div className="flex-1 overflow-x-auto overflow-y-auto pl-4">
                 {/* Sticky Header Row for Columns */}
-                <div className="sticky top-0 z-20 flex gap-4 pl-6 pb-2 pt-2 bg-slate-950/80 backdrop-blur-md border-b border-slate-800 min-w-max">
-                    {columns.map(col => (
-                        <div key={col.id} className="w-80 flex-shrink-0">
-                            <ColumnHeader
-                                title={col.name}
-                                color={col.color}
-                                count={tasks.filter(t => t.boardColumnId === col.id).length}
-                                // No delete/edit in matrix header usually, or maybe yes?
-                                // Let's keep it simple for now, just label
-                                onCopy={() => {
-                                    // Export ALL tasks in this column across all sections?
-                                    // Logic: filter tasks by columnId
-                                    const colTasks = tasks.filter(t => t.boardColumnId === col.id);
-                                    const exportable = colTasks.map(t => ({
-                                        ...t,
-                                        section: t.section ? { name: t.section } : null,
-                                        projectSection: t.projectSectionId ? { name: projectSections.find(s => s.id === t.projectSectionId)?.name || "Unknown" } : null
-                                    }));
-                                    copyToClipboard(formatTasksToText(exportable as any, col.name));
-                                    alert("Скопировано!");
-                                }}
-                                onDownload={() => {
-                                    // Export ALL tasks in this column across all sections
-                                    const colTasks = tasks.filter(t => t.boardColumnId === col.id);
-                                    const exportable = colTasks.map(t => ({
-                                        ...t,
-                                        section: t.section ? { name: t.section } : null,
-                                        projectSection: t.projectSectionId ? { name: projectSections.find(s => s.id === t.projectSectionId)?.name || "Unknown" } : null
-                                    }));
-                                    downloadAsFile(formatTasksToText(exportable as any, col.name), `${col.name}.txt`);
-                                }}
+                <div className="sticky top-0 z-20 flex gap-4 pl-6 pb-2 pt-2 bg-slate-950/80 backdrop-blur-md border-b border-slate-800 min-w-max items-start">
+                    <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
+                        {columns.map(col => (
+                            <SortableColumnHeader
+                                key={col.id}
+                                col={col}
+                                taskCount={tasks.filter(t => t.boardColumnId === col.id).length}
+                                onDelete={() => deleteColumn.mutate({ id: col.id })}
+                                onEdit={() => { /* TODO */ }}
+                                onAdd={() => { /* maybe open global add dlg? */ }}
                             />
-                        </div>
-                    ))}
+                        ))}
+                    </SortableContext>
+                    <AddColumnUI />
                 </div>
 
                 {/* Swimlanes */}
@@ -744,9 +736,83 @@ export function KanbanBoard({
                                     onCreateCancel={() => setShowCreateInColumn(null)}
                                 />
                             ))}
+                            {/* Spacer to match Add Column button width if needed, or just let it flow */}
+                            <div className="w-72 flex-shrink-0" />
                         </div>
                     </div>
                 ))}
+            </div>
+        );
+    };
+
+    // Define SortableSimpleColumn component locally to access props/context if needed, 
+    // or just pass everything.
+    const SortableSimpleColumn = ({
+        col, tasks, onDelete, onAdd, onSelectTask, overContainerId,
+        showCreateInColumn, createTask, projectId, section, projectSections, setShowCreateInColumn
+    }: any) => {
+        const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+            id: `col-${col.id}`,
+            data: { type: "column" },
+        });
+        const style = {
+            transform: CSS.Translate.toString(transform),
+            transition,
+        };
+
+        return (
+            <div ref={setNodeRef} style={style} className="flex flex-col gap-2 h-full">
+                <SortableContext items={tasks.map((t: any) => t.id)} strategy={verticalListSortingStrategy}>
+                    <div className="w-72 bg-slate-900/50 rounded-xl flex flex-col max-h-full border border-slate-800/50">
+                        <ColumnHeader
+                            title={col.name}
+                            color={col.color}
+                            count={tasks.length}
+                            onDelete={onDelete}
+                            onEdit={() => {/* TODO */ }}
+                            onAdd={onAdd}
+                            dragHandleProps={{ ...attributes, ...listeners }}
+                            onCopy={() => {
+                                const exportable = tasks.map((t: any) => ({
+                                    ...t,
+                                    section: t.section ? { name: t.section } : null,
+                                    projectSection: t.projectSectionId ? { name: projectSections.find((s: any) => s.id === t.projectSectionId)?.name || "Unknown" } : null
+                                }));
+                                copyToClipboard(formatTasksToText(exportable, col.name));
+                                alert("Скопировано!");
+                            }}
+                            onDownload={() => {
+                                const exportable = tasks.map((t: any) => ({
+                                    ...t,
+                                    section: t.section ? { name: t.section } : null,
+                                    projectSection: t.projectSectionId ? { name: projectSections.find((s: any) => s.id === t.projectSectionId)?.name || "Unknown" } : null
+                                }));
+                                downloadAsFile(formatTasksToText(exportable, col.name), `${col.name}.txt`);
+                            }}
+                        />
+                        <div className="flex-1 overflow-y-auto p-2">
+                            <KanbanCell
+                                columnId={col.id}
+                                sectionId={null}
+                                tasks={tasks}
+                                onSelectTask={onSelectTask}
+                                onAddTask={onAdd}
+                                isActiveDropTarget={overContainerId === `null:${col.id}`}
+                                isCreating={showCreateInColumn?.columnId === col.id && showCreateInColumn?.sectionId === null}
+                                onCreateSubmit={(title: string) => {
+                                    createTask.mutate({
+                                        title,
+                                        section: projectId ? undefined : (section as "inbox" | undefined),
+                                        projectId: projectId || undefined,
+                                        boardColumnId: col.id,
+                                        projectSectionId: null,
+                                    });
+                                }}
+                                onCreateCancel={() => setShowCreateInColumn(null)}
+                            />
+                        </div>
+                    </div>
+                </SortableContext>
             </div>
         );
     };
