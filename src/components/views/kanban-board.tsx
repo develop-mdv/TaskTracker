@@ -457,6 +457,40 @@ export function KanbanBoard({
             projectSectionId: targetSectionId,
             position: newPosition,
         });
+
+        // Optimistic update for "Done" column status
+        const targetColumn = columns.find(c => c.id === targetColumnId);
+        if (targetColumn) {
+            const colName = targetColumn.name.toLowerCase().trim();
+            const isDoneColumn = ["done", "completed", "готово", "выполнено", "завершено"].includes(colName);
+
+            // Optimistically update the UI by modifying the query cache
+            const queryInput = {
+                projectId: projectId || undefined,
+                section: (section === "inbox" ? "inbox" : undefined) as "inbox" | undefined
+            };
+
+            utils.tasks.list.cancel(queryInput); // Cancel outgoing refetches
+
+            utils.tasks.list.setData(queryInput, (oldData) => {
+                if (!oldData) return oldData;
+                // oldData is Task[]
+                return oldData.map(t => {
+                    if (t.id === task.id) {
+                        // Update position and column
+                        // Also update completion status based on column
+                        return {
+                            ...t,
+                            boardColumnId: targetColumnId,
+                            projectSectionId: targetSectionId,
+                            position: newPosition, // This is an approximation
+                            completedAt: isDoneColumn ? new Date() : (t.boardColumnId !== targetColumnId && t.completedAt ? null : t.completedAt)
+                        };
+                    }
+                    return t;
+                });
+            });
+        }
     };
 
     const handleMoveColumn = useCallback((columnId: string, direction: -1 | 1) => {

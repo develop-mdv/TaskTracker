@@ -298,7 +298,32 @@ export const tasksRouter = router({
                 }
             }
 
-            if (data.boardColumnId !== undefined) updateData.boardColumnId = data.boardColumnId;
+            // Auto-complete logic when moving to "Done" column
+            if (data.boardColumnId !== undefined) {
+                updateData.boardColumnId = data.boardColumnId;
+
+                if (data.boardColumnId) {
+                    const column = await ctx.prisma.boardColumn.findUnique({
+                        where: { id: data.boardColumnId }
+                    });
+
+                    if (column) {
+                        const colName = column.name.toLowerCase().trim();
+                        const isDoneColumn = ["done", "completed", "готово", "выполнено", "завершено"].includes(colName);
+
+                        if (isDoneColumn) {
+                            updateData.completedAt = new Date();
+                        } else {
+                            // If moving OUT of a Done column (implied by moving to a non-Done column), 
+                            // we should probably un-complete it? 
+                            // Let's check current status first or just force it?
+                            // Safe bet: if moving to "In Progress" from "Done", uncomplete.
+                            updateData.completedAt = null;
+                        }
+                    }
+                }
+            }
+
             if (data.position !== undefined) updateData.position = data.position;
             if (data.dueDate !== undefined) {
                 updateData.dueDate = data.dueDate ? new Date(data.dueDate) : null;
@@ -320,11 +345,45 @@ export const tasksRouter = router({
             completionNote: z.string().optional()
         }))
         .mutation(async ({ ctx, input }) => {
+            // Auto-move to "Done" column logic
+            const task = await ctx.prisma.task.findUnique({
+                where: { id: input.id, userId: ctx.userId },
+                select: { projectId: true, boardColumnId: true }
+            });
+
+            let newColumnId = undefined;
+
+            if (task) {
+                // Find a "Done" column in the task's scope (project or global)
+                // Note: BoardColumns are currently global or per-project? 
+                // Schema says: projectId String? @relation...
+
+                const whereClause: any = { userId: ctx.userId };
+                if (task.projectId) {
+                    whereClause.projectId = task.projectId;
+                } else {
+                    whereClause.projectId = null;
+                }
+
+                const columns = await ctx.prisma.boardColumn.findMany({
+                    where: whereClause
+                });
+
+                const doneColumn = columns.find(c =>
+                    ["done", "completed", "готово", "выполнено", "завершено"].includes(c.name.toLowerCase().trim())
+                );
+
+                if (doneColumn && task.boardColumnId !== doneColumn.id) {
+                    newColumnId = doneColumn.id;
+                }
+            }
+
             return ctx.prisma.task.update({
                 where: { id: input.id, userId: ctx.userId },
                 data: {
                     completedAt: new Date(),
-                    completionNote: input.completionNote
+                    completionNote: input.completionNote,
+                    ...(newColumnId ? { boardColumnId: newColumnId } : {})
                 },
             });
         }),
