@@ -52,6 +52,10 @@ prisma/migrations/migration_lock.toml
 *.swp
 *.swo
 
+# Deploy keys
+github_deploy_key
+github_deploy_key.pub
+
 # nginx runtime files (generated on server)
 nginx/certs/
 nginx/active.conf

@@ -1,0 +1,30 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /opt/tasktracker
+            git pull
+            # Rebuild and restart app container (ensures latest code is used)
+            docker compose --profile production up -d --build app
+            # Restart nginx to ensure it picks up any config changes and maintains connection
+            docker compose --profile production restart nginx
+            # Prune unused images to save space
+            docker image prune -f
