@@ -330,7 +330,7 @@ const SortableColumnHeader = memo(function SortableColumnHeader({
     };
 
     return (
-        <div ref={setNodeRef} style={style} className="w-72 flex-shrink-0">
+        <div ref={setNodeRef} style={style} className="w-80 flex-shrink-0">
             <div className="bg-slate-900/50 rounded-xl overflow-hidden">
                 <ColumnHeader
                     title={col.name}
@@ -613,7 +613,7 @@ export function KanbanBoard({
 
         // Shared "Add Column" UI
         const AddColumnUI = () => (
-            <div className="flex-shrink-0 w-72">
+            <div className="flex-shrink-0 w-80">
                 {newColumnName !== "" ? (
                     <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-700/50">
                         <input
@@ -737,7 +737,7 @@ export function KanbanBoard({
                                 />
                             ))}
                             {/* Spacer to match Add Column button width if needed, or just let it flow */}
-                            <div className="w-72 flex-shrink-0" />
+                            <div className="w-80 flex-shrink-0" />
                         </div>
                     </div>
                 ))}
@@ -763,7 +763,7 @@ export function KanbanBoard({
         return (
             <div ref={setNodeRef} style={style} className="flex flex-col gap-2 h-full">
                 <SortableContext items={tasks.map((t: any) => t.id)} strategy={verticalListSortingStrategy}>
-                    <div className="w-72 bg-slate-900/50 rounded-xl flex flex-col max-h-full border border-slate-800/50">
+                    <div className="w-80 bg-slate-900/50 rounded-xl flex flex-col max-h-full border border-slate-800/50">
                         <ColumnHeader
                             title={col.name}
                             color={col.color}
