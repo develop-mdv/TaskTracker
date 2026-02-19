@@ -20,7 +20,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd /opt/tasktracker
+            cd ~/TaskTracker
             git pull
             # Rebuild and restart app container (ensures latest code is used)
             docker compose --profile production up -d --build app
