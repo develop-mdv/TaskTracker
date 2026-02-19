@@ -1,7 +1,8 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { CompleteTaskDialog } from "./complete-task-dialog";
 
 interface Task {
     id: string;
@@ -49,6 +50,8 @@ export const TaskCard = memo(function TaskCard({
         onSuccess: () => utils.tasks.list.invalidate(),
     });
 
+    const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
+
     const isCompleted = !!task.completedAt;
     const isDeleted = !!task.deletedAt;
     const p = PRIORITIES[task.priority] || PRIORITIES[0];
@@ -86,7 +89,9 @@ export const TaskCard = memo(function TaskCard({
                             if (isCompleted) {
                                 uncompleteMut.mutate({ id: task.id });
                             } else {
-                                completeMut.mutate({ id: task.id });
+                                // If already completed, we don't show dialog (uncheck is simple)
+                                // If checking, we show dialog to ask for note
+                                setIsCompleteDialogOpen(true);
                             }
                         }}
                         className={`mt-0.5 w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition ${isCompleted
@@ -165,6 +170,14 @@ export const TaskCard = memo(function TaskCard({
                     </div>
                 </div>
             </div>
-        </div>
+
+            <CompleteTaskDialog
+                taskId={task.id}
+                taskTitle={task.title}
+                isOpen={isCompleteDialogOpen}
+                onClose={() => setIsCompleteDialogOpen(false)}
+                onComplete={(note) => completeMut.mutate({ id: task.id, completionNote: note })}
+            />
+        </div >
     );
 });

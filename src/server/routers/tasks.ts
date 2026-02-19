@@ -27,10 +27,19 @@ export const tasksRouter = router({
             }
 
             if (input.archived) {
+                // Show only completed (archived)
                 where.completedAt = { not: null };
                 where.deletedAt = null;
             } else if (!input.deleted) {
-                where.completedAt = null;
+                // Show active tasks OR tasks completed TODAY
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                where.OR = [
+                    { completedAt: null },
+                    { completedAt: { gte: today } }
+                ];
+                where.deletedAt = null;
             }
 
             if (input.today) {
@@ -165,6 +174,7 @@ export const tasksRouter = router({
                 description: z.string().nullable().optional(),
                 priority: z.number().int().min(0).max(4).optional(),
                 tags: z.array(z.string()).optional(),
+                completionNote: z.string().nullable().optional(),
                 section: z.enum(["inbox"]).nullable().optional(),
                 projectId: z.string().nullable().optional(),
                 projectSectionId: z.string().nullable().optional(),
@@ -184,6 +194,8 @@ export const tasksRouter = router({
             if (data.description !== undefined) updateData.description = data.description;
             if (data.priority !== undefined) updateData.priority = data.priority;
             if (data.tags !== undefined) updateData.tags = data.tags;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            if ((data as any).completionNote !== undefined) updateData.completionNote = (data as any).completionNote;
             if (data.position !== undefined) updateData.position = data.position;
 
             // Handle location changes
@@ -303,11 +315,17 @@ export const tasksRouter = router({
         }),
 
     complete: protectedProcedure
-        .input(z.object({ id: z.string() }))
+        .input(z.object({
+            id: z.string(),
+            completionNote: z.string().optional()
+        }))
         .mutation(async ({ ctx, input }) => {
             return ctx.prisma.task.update({
                 where: { id: input.id, userId: ctx.userId },
-                data: { completedAt: new Date() },
+                data: {
+                    completedAt: new Date(),
+                    completionNote: input.completionNote
+                },
             });
         }),
 
@@ -379,6 +397,7 @@ export const tasksRouter = router({
                 ids: z.array(z.string()),
                 section: z.enum(["inbox"]).nullable().optional(),
                 projectId: z.string().nullable().optional(),
+                boardColumnId: z.string().nullable().optional(),
             })
         )
         .mutation(async ({ ctx, input }) => {
@@ -390,6 +409,9 @@ export const tasksRouter = router({
             if (input.projectId !== undefined) {
                 data.projectId = input.projectId;
                 if (input.projectId) data.section = null;
+            }
+            if (input.boardColumnId !== undefined) {
+                data.boardColumnId = input.boardColumnId;
             }
             return ctx.prisma.task.updateMany({
                 where: { id: { in: input.ids }, userId: ctx.userId },

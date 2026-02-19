@@ -93,6 +93,7 @@ model Task {
 
   // Soft states
   completedAt DateTime?
+  completionNote String?  @db.Text // Note added when completing the task
   deletedAt   DateTime?
 
   // Recurrence

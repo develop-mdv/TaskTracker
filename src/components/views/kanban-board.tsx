@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback, memo } from "react";
+import { useState, useMemo, useCallback, memo, useEffect } from "react";
+import { formatTasksToText, copyToClipboard, downloadAsFile } from "@/lib/export-utils";
 import {
     DndContext,
     DragOverlay,
@@ -469,6 +470,30 @@ export function KanbanBoard({
         });
     }, [columns, reorderColumns]);
 
+
+
+    const bulkMoveMut = trpc.tasks.bulkMove.useMutation({
+        onSuccess: () => utils.tasks.list.invalidate(),
+    });
+
+    useEffect(() => {
+        if (columns.length === 0) return;
+        const firstColId = columns.sort((a, b) => (a.position || 0) - (b.position || 0))[0].id;
+
+        const unallocatedIds = tasks
+            .filter(t => !t.boardColumnId && !t.deletedAt && !t.completedAt)
+            .map(t => t.id);
+
+        if (unallocatedIds.length > 0) {
+            bulkMoveMut.mutate({
+                ids: unallocatedIds,
+                boardColumnId: firstColId
+            });
+        }
+    }, [tasks.length, columns.length]); // Dep: tasks.length to trigger when tasks load, but avoid loops? 
+    // Actually [tasks] might loop if optimistically updated. 
+    // But `bulkMove` will set boardColumnId, so they won't be unallocated anymore. Safe.
+
     // Render Helper
     const renderContent = () => {
         // If we have sections, we render Matrix View
@@ -558,6 +583,29 @@ export function KanbanBoard({
                                 Добавить колонку
                             </button>
                         )}
+
+                        {/* Export Actions (Simple View) */}
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => {
+                                    const text = formatTasksToText(tasks, "Exported Tasks");
+                                    copyToClipboard(text);
+                                    alert("Задачи скопированы в буфер обмена");
+                                }}
+                                className="flex-1 py-2 bg-slate-800/50 border border-slate-700/30 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/50 text-xs transition"
+                            >
+                                Коп. текст
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const text = formatTasksToText(tasks, "Exported Tasks");
+                                    downloadAsFile(text, `tasks-${new Date().toISOString().split('T')[0]}.txt`);
+                                }}
+                                className="flex-1 py-2 bg-slate-800/50 border border-slate-700/30 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/50 text-xs transition"
+                            >
+                                Скачать
+                            </button>
+                        </div>
                     </div>
                 </div>
             );
@@ -582,7 +630,7 @@ export function KanbanBoard({
                     </SortableContext>
 
                     {/* Add Column Button */}
-                    <div className="flex-shrink-0 w-72">
+                    <div className="flex-shrink-0 w-72 flex flex-col gap-2">
                         {newColumnName !== "" ? (
                             <div className="bg-slate-900/50 rounded-xl p-3">
                                 <input
@@ -616,6 +664,29 @@ export function KanbanBoard({
                                 Колонка
                             </button>
                         )}
+
+                        {/* Export Actions */}
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => {
+                                    const text = formatTasksToText(tasks, "Exported Tasks");
+                                    copyToClipboard(text);
+                                    alert("Задачи скопированы в буфер обмена");
+                                }}
+                                className="flex-1 py-2 bg-slate-800/50 border border-slate-700/30 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/50 text-xs transition"
+                            >
+                                Коп. текст
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const text = formatTasksToText(tasks, "Exported Tasks");
+                                    downloadAsFile(text, `tasks-${new Date().toISOString().split('T')[0]}.txt`);
+                                }}
+                                className="flex-1 py-2 bg-slate-800/50 border border-slate-700/30 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/50 text-xs transition"
+                            >
+                                Скачать
+                            </button>
+                        </div>
                     </div>
                 </div>
 
