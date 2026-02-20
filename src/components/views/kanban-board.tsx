@@ -5,7 +5,8 @@ import { formatTasksToText, copyToClipboard, downloadAsFile } from "@/lib/export
 import {
     DndContext,
     DragOverlay,
-    closestCorners,
+    closestCenter,
+    rectIntersection,
     PointerSensor,
     useSensor,
     useSensors,
@@ -13,6 +14,7 @@ import {
     DragEndEvent,
     DragOverEvent,
     defaultDropAnimationSideEffects,
+    type CollisionDetection,
 } from "@dnd-kit/core";
 import {
     SortableContext,
@@ -59,6 +61,50 @@ interface ProjectSection {
     name: string;
     position: number;
 }
+
+/* ─── Custom Collision Detection for Matrix Layout ─── */
+// Prioritizes droppable cells (sectionId:columnId) for task drags,
+// and column headers (col-*) for column drags.
+const createKanbanCollisionDetection = (activeType: "task" | "column" | null): CollisionDetection => {
+    return (args) => {
+        const { droppableContainers } = args;
+
+        if (activeType === "column") {
+            // For column dragging, only consider column sortable items
+            const columnContainers = droppableContainers.filter(
+                (container) => String(container.id).startsWith("col-")
+            );
+            return closestCenter({ ...args, droppableContainers: columnContainers });
+        }
+
+        // For task dragging: prefer cell droppables (sectionId:columnId),
+        // fall back to task sortable items
+        const cellContainers = droppableContainers.filter(
+            (container) => String(container.id).includes(":")
+        );
+        const taskContainers = droppableContainers.filter(
+            (container) => {
+                const id = String(container.id);
+                return !id.startsWith("col-") && !id.includes(":");
+            }
+        );
+
+        // First check if we intersect any task items (for reordering within a cell)
+        const taskCollisions = rectIntersection({ ...args, droppableContainers: taskContainers });
+        if (taskCollisions.length > 0) {
+            return taskCollisions;
+        }
+
+        // Then check cell droppables (for moving between columns/sections)
+        const cellCollisions = closestCenter({ ...args, droppableContainers: cellContainers });
+        if (cellCollisions.length > 0) {
+            return cellCollisions;
+        }
+
+        // Fallback to all containers
+        return closestCenter(args);
+    };
+};
 
 /* ─── Sortable Task ─── */
 const SortableTaskItem = memo(function SortableTaskItem({
@@ -694,7 +740,10 @@ export function KanbanBoard({
                                 taskCount={tasks.filter(t => t.boardColumnId === col.id).length}
                                 onDelete={() => deleteColumn.mutate({ id: col.id })}
                                 onEdit={() => { /* TODO */ }}
-                                onAdd={() => { /* maybe open global add dlg? */ }}
+                                onAdd={() => {
+                                    const firstSection = sectionsToRender[0];
+                                    setShowCreateInColumn({ columnId: col.id, sectionId: firstSection?.id ?? null });
+                                }}
                             />
                         ))}
                     </SortableContext>
@@ -713,7 +762,7 @@ export function KanbanBoard({
                         </div>
 
                         {/* Columns Grid */}
-                        <div className="flex gap-4 pl-6">
+                        <div className="flex gap-4 pl-6 min-w-max">
                             {columns.map(col => (
                                 <KanbanCell
                                     key={`${sect.id}:${col.id}`}
@@ -846,10 +895,15 @@ export function KanbanBoard({
 
     // ... existing code ...
 
+    const collisionDetection = useMemo(
+        () => createKanbanCollisionDetection(activeType),
+        [activeType]
+    );
+
     return (
         <DndContext
             sensors={sensors}
-            collisionDetection={closestCorners}
+            collisionDetection={collisionDetection}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
@@ -858,8 +912,19 @@ export function KanbanBoard({
             {renderContent()}
 
             <DragOverlay dropAnimation={defaultDropAnimation}>
-                {activeType === "task" ? (
+                {activeType === "task" && activeId ? (
                     <div className="w-72"><TaskCard task={tasks.find(t => t.id === activeId)!} isDragging /></div>
+                ) : activeType === "column" && activeId ? (
+                    <div className="w-80 opacity-80">
+                        <div className="bg-slate-800/90 rounded-xl border-2 border-indigo-500/50 shadow-xl shadow-indigo-500/20 p-3">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2.5 h-2.5 rounded-full bg-indigo-400" />
+                                <span className="text-sm font-medium text-white">
+                                    {columns.find(c => `col-${c.id}` === activeId)?.name || "Колонка"}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 ) : null}
             </DragOverlay>
 
