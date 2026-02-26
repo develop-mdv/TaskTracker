@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { formatTaskToText, copyToClipboard, downloadAsFile } from "@/lib/export-utils";
 
@@ -11,6 +11,185 @@ const PRIORITIES = [
     { value: 3, label: "Высокий" },
     { value: 4, label: "Срочный" },
 ];
+
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
+const ACCEPTED_FILE_TYPES = [
+    "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
+    "application/pdf", "text/plain", "text/csv", "text/html",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "video/mp4", "video/webm",
+    "audio/mpeg", "audio/ogg", "audio/wav",
+    "application/zip", "application/x-rar-compressed", "application/x-7z-compressed",
+].join(",");
+
+function getFileCategory(mimeType?: string | null): "image" | "video" | "audio" | "pdf" | "document" | "archive" | "other" {
+    if (!mimeType) return "other";
+    if (mimeType.startsWith("image/")) return "image";
+    if (mimeType.startsWith("video/")) return "video";
+    if (mimeType.startsWith("audio/")) return "audio";
+    if (mimeType === "application/pdf") return "pdf";
+    if (mimeType.startsWith("text/") || mimeType.includes("word") || mimeType.includes("sheet") || mimeType.includes("excel")) return "document";
+    if (mimeType.includes("zip") || mimeType.includes("rar") || mimeType.includes("7z")) return "archive";
+    return "other";
+}
+
+function FileTypeIcon({ mimeType, className = "w-5 h-5" }: { mimeType?: string | null; className?: string }) {
+    const cat = getFileCategory(mimeType);
+    switch (cat) {
+        case "image":
+            return (
+                <svg className={`${className} text-emerald-400`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+            );
+        case "video":
+            return (
+                <svg className={`${className} text-purple-400`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+            );
+        case "audio":
+            return (
+                <svg className={`${className} text-amber-400`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                </svg>
+            );
+        case "pdf":
+            return (
+                <svg className={`${className} text-red-400`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+            );
+        case "document":
+            return (
+                <svg className={`${className} text-blue-400`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+            );
+        case "archive":
+            return (
+                <svg className={`${className} text-orange-400`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
+            );
+        default:
+            return (
+                <svg className={`${className} text-slate-500`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+            );
+    }
+}
+
+function formatFileSize(bytes: number | null | undefined): string {
+    if (!bytes) return "";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// Lightbox / Preview Modal
+function AttachmentPreviewModal({
+    attachment,
+    downloadUrl,
+    onClose,
+}: {
+    attachment: { id: string; filename: string; mimeType: string | null; size: number | null };
+    downloadUrl: string;
+    onClose: () => void;
+}) {
+    const cat = getFileCategory(attachment.mimeType);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [onClose]);
+
+    return (
+        <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md"
+            onClick={onClose}
+        >
+            <div
+                className="relative max-w-[90vw] max-h-[90vh] flex flex-col items-center"
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* Close button */}
+                <button
+                    onClick={onClose}
+                    className="absolute -top-2 -right-2 z-10 p-2 rounded-full bg-slate-800/80 text-white hover:bg-slate-700 transition"
+                >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+
+                {/* Content */}
+                {cat === "image" && (
+                    <img
+                        src={downloadUrl}
+                        alt={attachment.filename}
+                        className="max-w-[85vw] max-h-[80vh] rounded-xl object-contain shadow-2xl"
+                    />
+                )}
+                {cat === "video" && (
+                    <video
+                        src={downloadUrl}
+                        controls
+                        autoPlay
+                        className="max-w-[85vw] max-h-[80vh] rounded-xl shadow-2xl"
+                    />
+                )}
+                {cat === "audio" && (
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl p-8 min-w-[400px] text-center space-y-4">
+                        <FileTypeIcon mimeType={attachment.mimeType} className="w-12 h-12 mx-auto" />
+                        <p className="text-white font-medium">{attachment.filename}</p>
+                        <audio src={downloadUrl} controls autoPlay className="w-full" />
+                    </div>
+                )}
+                {cat === "pdf" && (
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl p-8 min-w-[400px] text-center space-y-4">
+                        <FileTypeIcon mimeType="application/pdf" className="w-12 h-12 mx-auto" />
+                        <p className="text-white font-medium">{attachment.filename}</p>
+                        <a
+                            href={downloadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition"
+                        >
+                            Открыть PDF в новой вкладке ↗
+                        </a>
+                    </div>
+                )}
+                {(cat === "document" || cat === "archive" || cat === "other") && (
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl p-8 min-w-[400px] text-center space-y-4">
+                        <FileTypeIcon mimeType={attachment.mimeType} className="w-12 h-12 mx-auto" />
+                        <p className="text-white font-medium">{attachment.filename}</p>
+                        {attachment.size && (
+                            <p className="text-sm text-slate-400">{formatFileSize(attachment.size)}</p>
+                        )}
+                        <a
+                            href={downloadUrl}
+                            download={attachment.filename}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition"
+                        >
+                            Скачать файл ↓
+                        </a>
+                    </div>
+                )}
+
+                {/* Filename caption */}
+                <p className="mt-3 text-sm text-slate-400 truncate max-w-[80vw]">{attachment.filename}</p>
+            </div>
+        </div>
+    );
+}
 
 interface TaskDetailDrawerProps {
     taskId: string;
@@ -60,9 +239,44 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploading, setUploading] = useState(false);
+    const [uploadError, setUploadError] = useState<string | null>(null);
 
     const [editTitle, setEditTitle] = useState<string | null>(null);
     const [editDescription, setEditDescription] = useState<string | null>(null);
+
+    // Preview state
+    const [previewAttachment, setPreviewAttachment] = useState<{
+        id: string; filename: string; mimeType: string | null; size: number | null;
+    } | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+    // Thumbnail URLs cache
+    const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>({});
+
+    // Load thumbnail URLs for image attachments
+    useEffect(() => {
+        if (!task?.attachments) return;
+        const imageAttachments = task.attachments.filter(
+            (att) => getFileCategory(att.mimeType) === "image" && !thumbnailUrls[att.id]
+        );
+        if (imageAttachments.length === 0) return;
+
+        let cancelled = false;
+        (async () => {
+            const newUrls: Record<string, string> = {};
+            for (const att of imageAttachments) {
+                try {
+                    const { downloadUrl } = await getDownloadUrl.mutateAsync({ id: att.id });
+                    if (!cancelled) newUrls[att.id] = downloadUrl;
+                } catch { /* ignore */ }
+            }
+            if (!cancelled) {
+                setThumbnailUrls((prev) => ({ ...prev, ...newUrls }));
+            }
+        })();
+        return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [task?.attachments?.map(a => a.id).join(",")]);
 
     if (isLoading) {
         return (
@@ -77,9 +291,15 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
     const handleFileUpload = async (files: FileList | null) => {
         if (!files || files.length === 0) return;
         setUploading(true);
+        setUploadError(null);
 
         try {
             for (const file of Array.from(files)) {
+                // Client-side size check
+                if (file.size > MAX_FILE_SIZE) {
+                    setUploadError(`«${file.name}» превышает лимит 20 MB`);
+                    continue;
+                }
                 const { uploadUrl } = await getUploadUrl.mutateAsync({
                     taskId: task.id,
                     filename: file.name,
@@ -94,10 +314,12 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                 });
             }
             utils.tasks.getById.invalidate({ id: taskId });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Upload failed:", error);
+            setUploadError(error?.message || "Ошибка при загрузке");
         } finally {
             setUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = "";
         }
     };
 
@@ -112,6 +334,17 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
             document.body.removeChild(a);
         } catch (error) {
             console.error("Download failed:", error);
+        }
+    };
+
+    const handlePreview = async (att: { id: string; filename: string; mimeType: string | null; size: number | null }) => {
+        try {
+            // Use cached thumbnail URL if available
+            const url = thumbnailUrls[att.id] || (await getDownloadUrl.mutateAsync({ id: att.id })).downloadUrl;
+            setPreviewAttachment(att);
+            setPreviewUrl(url);
+        } catch (error) {
+            console.error("Preview failed:", error);
         }
     };
 
@@ -144,6 +377,11 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                         >
                             {isCompleted ? "✓ Выполнено" : "Выполнить"}
                         </button>
+                        {task.recurrenceRuleId && (
+                            <span className="text-xs text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md" title="Повторяющаяся задача">
+                                🔄 Повторяющаяся
+                            </span>
+                        )}
                     </div>
                     <div className="flex items-center gap-2">
                         <button
@@ -331,41 +569,113 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                 ref={fileInputRef}
                                 type="file"
                                 multiple
+                                accept={ACCEPTED_FILE_TYPES}
                                 className="hidden"
                                 onChange={(e) => handleFileUpload(e.target.files)}
                             />
                         </div>
 
+                        {uploadError && (
+                            <div className="mb-3 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-400">
+                                {uploadError}
+                            </div>
+                        )}
+
                         {task.attachments && task.attachments.length > 0 ? (
                             <div className="space-y-2">
-                                {task.attachments.map((att) => (
-                                    <div
-                                        key={att.id}
-                                        className="flex items-center gap-3 px-3 py-2 bg-slate-800/50 rounded-lg group"
-                                    >
-                                        <svg className="w-4 h-4 text-slate-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                                        </svg>
-                                        <span className="text-sm text-slate-300 flex-1 truncate">{att.filename}</span>
-                                        {att.size && (
-                                            <span className="text-xs text-slate-600">
-                                                {(att.size / 1024).toFixed(0)}KB
-                                            </span>
-                                        )}
-                                        <button
-                                            onClick={() => handleDownload(att.id, att.filename)}
-                                            className="opacity-0 group-hover:opacity-100 text-xs text-indigo-400 hover:text-indigo-300 transition"
-                                        >
-                                            Скачать
-                                        </button>
-                                        <button
-                                            onClick={() => deleteAttachment.mutate({ id: att.id })}
-                                            className="opacity-0 group-hover:opacity-100 text-xs text-red-400 hover:text-red-300 transition"
-                                        >
-                                            ✕
-                                        </button>
+                                {/* Image thumbnails grid */}
+                                {task.attachments.some(att => getFileCategory(att.mimeType) === "image") && (
+                                    <div className="grid grid-cols-3 gap-2 mb-3">
+                                        {task.attachments
+                                            .filter(att => getFileCategory(att.mimeType) === "image")
+                                            .map(att => (
+                                                <button
+                                                    key={att.id}
+                                                    onClick={() => handlePreview(att)}
+                                                    className="relative aspect-square rounded-lg overflow-hidden bg-slate-800 border border-slate-700/50 hover:border-indigo-500/50 transition group"
+                                                >
+                                                    {thumbnailUrls[att.id] ? (
+                                                        <img
+                                                            src={thumbnailUrls[att.id]}
+                                                            alt={att.filename}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center animate-pulse">
+                                                            <FileTypeIcon mimeType={att.mimeType} className="w-8 h-8" />
+                                                        </div>
+                                                    )}
+                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                                        </svg>
+                                                    </div>
+                                                </button>
+                                            ))}
                                     </div>
-                                ))}
+                                )}
+
+                                {/* Non-image attachments list */}
+                                {task.attachments
+                                    .filter(att => getFileCategory(att.mimeType) !== "image")
+                                    .map((att) => (
+                                        <div
+                                            key={att.id}
+                                            className="flex items-center gap-3 px-3 py-2.5 bg-slate-800/50 rounded-lg group hover:bg-slate-800 transition cursor-pointer"
+                                            onClick={() => handlePreview(att)}
+                                        >
+                                            <FileTypeIcon mimeType={att.mimeType} />
+                                            <span className="text-sm text-slate-300 flex-1 truncate">{att.filename}</span>
+                                            {att.size && (
+                                                <span className="text-xs text-slate-600">
+                                                    {formatFileSize(att.size)}
+                                                </span>
+                                            )}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDownload(att.id, att.filename);
+                                                }}
+                                                className="opacity-0 group-hover:opacity-100 text-xs text-indigo-400 hover:text-indigo-300 transition"
+                                            >
+                                                Скачать
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    deleteAttachment.mutate({ id: att.id });
+                                                }}
+                                                className="opacity-0 group-hover:opacity-100 text-xs text-red-400 hover:text-red-300 transition"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    ))}
+
+                                {/* Image attachments also need delete buttons — show as small list under grid */}
+                                {task.attachments
+                                    .filter(att => getFileCategory(att.mimeType) === "image")
+                                    .map((att) => (
+                                        <div
+                                            key={`meta-${att.id}`}
+                                            className="flex items-center gap-3 px-3 py-1.5 group"
+                                        >
+                                            <FileTypeIcon mimeType={att.mimeType} className="w-3.5 h-3.5" />
+                                            <span className="text-xs text-slate-500 flex-1 truncate">{att.filename}</span>
+                                            <button
+                                                onClick={() => handleDownload(att.id, att.filename)}
+                                                className="opacity-0 group-hover:opacity-100 text-xs text-indigo-400 hover:text-indigo-300 transition"
+                                            >
+                                                Скачать
+                                            </button>
+                                            <button
+                                                onClick={() => deleteAttachment.mutate({ id: att.id })}
+                                                className="opacity-0 group-hover:opacity-100 text-xs text-red-400 hover:text-red-300 transition"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    ))}
                             </div>
                         ) : (
                             <p className="text-sm text-slate-600">Нет вложений</p>
@@ -382,6 +692,18 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                     </div>
                 </div>
             </div>
+
+            {/* Lightbox Preview */}
+            {previewAttachment && previewUrl && (
+                <AttachmentPreviewModal
+                    attachment={previewAttachment}
+                    downloadUrl={previewUrl}
+                    onClose={() => {
+                        setPreviewAttachment(null);
+                        setPreviewUrl(null);
+                    }}
+                />
+            )}
         </div>
     );
 }

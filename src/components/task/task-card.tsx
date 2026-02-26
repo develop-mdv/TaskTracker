@@ -23,6 +23,7 @@ interface Task {
     boardColumn?: { id: string; name: string; color?: string | null } | null;
     attachments?: { id: string; filename: string; mimeType?: string | null; size?: number | null }[];
     _count?: { attachments: number };
+    recurrenceRuleId?: string | null;
 }
 
 const PRIORITIES = [
@@ -116,6 +117,11 @@ export const TaskCard = memo(function TaskCard({
                         {task.priority > 0 && (
                             <span className={`text-xs px-1.5 py-0.5 rounded ${p.bg} ${p.color}`}>
                                 {p.label}
+                            </span>
+                        )}
+                        {task.recurrenceRuleId && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400" title="Повторяющаяся задача">
+                                🔄
                             </span>
                         )}
 

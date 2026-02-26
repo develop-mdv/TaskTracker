@@ -4,8 +4,24 @@ import { router, protectedProcedure } from "../trpc";
 export const projectsRouter = router({
     list: protectedProcedure.query(async ({ ctx }) => {
         return ctx.prisma.project.findMany({
-            where: { userId: ctx.userId, archived: false },
+            where: { userId: ctx.userId, archived: false, completedAt: null, deletedAt: null },
             orderBy: { position: "asc" },
+            include: {
+                _count: {
+                    select: {
+                        tasks: {
+                            where: { completedAt: null, deletedAt: null },
+                        },
+                    },
+                },
+            },
+        });
+    }),
+
+    listCompleted: protectedProcedure.query(async ({ ctx }) => {
+        return ctx.prisma.project.findMany({
+            where: { userId: ctx.userId, completedAt: { not: null }, deletedAt: null },
+            orderBy: { completedAt: "desc" },
             include: {
                 _count: {
                     select: {
@@ -218,5 +234,38 @@ export const projectsRouter = router({
                 })
             );
             await ctx.prisma.$transaction(ops);
+        }),
+
+    // Complete project: mark as completed
+    complete: protectedProcedure
+        .input(z.object({ id: z.string() }))
+        .mutation(async ({ ctx, input }) => {
+            const project = await ctx.prisma.project.findUnique({
+                where: { id: input.id, userId: ctx.userId },
+            });
+            if (!project) throw new Error("Project not found");
+
+            return ctx.prisma.$transaction(async (tx) => {
+                // Complete all active tasks in the project
+                await tx.task.updateMany({
+                    where: { projectId: input.id, completedAt: null, deletedAt: null },
+                    data: { completedAt: new Date() },
+                });
+
+                return tx.project.update({
+                    where: { id: input.id },
+                    data: { completedAt: new Date() },
+                });
+            });
+        }),
+
+    // Reopen completed project
+    reopen: protectedProcedure
+        .input(z.object({ id: z.string() }))
+        .mutation(async ({ ctx, input }) => {
+            return ctx.prisma.project.update({
+                where: { id: input.id, userId: ctx.userId },
+                data: { completedAt: null },
+            });
         }),
 });

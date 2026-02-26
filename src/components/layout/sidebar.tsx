@@ -7,6 +7,22 @@ import { useState } from "react";
 import { CreateProjectModal } from "./create-project-modal";
 import { ProjectSettingsModal } from "./project-settings-modal";
 import { useSidebar } from "./sidebar-context";
+import {
+    DndContext,
+    closestCenter,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+    DragOverlay,
+    DragStartEvent,
+} from "@dnd-kit/core";
+import {
+    SortableContext,
+    useSortable,
+    verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const SECTIONS = [
     {
@@ -50,6 +66,16 @@ const SECTIONS = [
         ),
     },
     {
+        id: "recurrence",
+        label: "Регулярные",
+        href: "/recurrence",
+        icon: (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+        ),
+    },
+    {
         id: "archive",
         label: "Архив",
         href: "/archive",
@@ -71,14 +97,153 @@ const SECTIONS = [
     },
 ];
 
+// Sortable project item
+function SortableProjectItem({
+    project,
+    isActive,
+    collapsed,
+    onNavigate,
+    onSettings,
+}: {
+    project: { id: string; name: string; color: string; _count?: { tasks: number } };
+    isActive: boolean;
+    collapsed: boolean;
+    onNavigate: () => void;
+    onSettings: () => void;
+}) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: project.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`group flex items-center w-full rounded-lg transition-colors ${isActive
+                ? "bg-slate-800 text-white"
+                : "text-slate-400 hover:text-white hover:bg-slate-800"
+                }`}
+        >
+            {/* Drag handle */}
+            {!collapsed && (
+                <button
+                    {...attributes}
+                    {...listeners}
+                    className="p-1 ml-1 cursor-grab active:cursor-grabbing text-slate-600 hover:text-slate-400 opacity-0 group-hover:opacity-100 transition touch-none"
+                    tabIndex={-1}
+                >
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 6a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm8-16a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
+                    </svg>
+                </button>
+            )}
+
+            <button
+                onClick={onNavigate}
+                className={`flex-1 flex items-center gap-3 px-3 py-2 text-sm ${collapsed ? "justify-center" : ""}`}
+                title={collapsed ? project.name : undefined}
+            >
+                <div
+                    className="w-3 h-3 rounded-sm flex-shrink-0"
+                    style={{ backgroundColor: project.color }}
+                />
+                {!collapsed && (
+                    <>
+                        <span className="truncate flex-1 text-left">{project.name}</span>
+                        <span className="text-xs text-slate-600">
+                            {(project as any)._count?.tasks ?? 0}
+                        </span>
+                    </>
+                )}
+            </button>
+
+            {!collapsed && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onSettings();
+                    }}
+                    className="p-2 opacity-0 group-hover:opacity-100 text-slate-500 hover:text-indigo-400 transition"
+                    title="Настройки"
+                >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </button>
+            )}
+        </div>
+    );
+}
+
 export function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
     const [showCreateProject, setShowCreateProject] = useState(false);
     const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+    const [showCompleted, setShowCompleted] = useState(false);
     const { collapsed, toggle } = useSidebar();
 
     const { data: projects } = trpc.projects.list.useQuery();
+    const { data: completedProjects } = trpc.projects.listCompleted.useQuery();
+    const reorderProjects = trpc.projects.reorder.useMutation();
+    const utils = trpc.useUtils();
+
+    const [activeId, setActiveId] = useState<string | null>(null);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    );
+
+    const handleDragStart = (event: DragStartEvent) => {
+        setActiveId(event.active.id as string);
+    };
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        setActiveId(null);
+
+        if (!over || active.id === over.id || !projects) return;
+
+        const oldIndex = projects.findIndex((p) => p.id === active.id);
+        const newIndex = projects.findIndex((p) => p.id === over.id);
+
+        if (oldIndex === -1 || newIndex === -1) return;
+
+        // Optimistically reorder
+        const reordered = [...projects];
+        const [moved] = reordered.splice(oldIndex, 1);
+        reordered.splice(newIndex, 0, moved);
+
+        // Calculate new positions
+        const items = reordered.map((p, i) => ({ id: p.id, position: i }));
+
+        // Optimistic update
+        utils.projects.list.setData(undefined, reordered.map((p, i) => ({ ...p, position: i })));
+
+        reorderProjects.mutate(
+            { items },
+            {
+                onError: () => {
+                    // Revert on error
+                    utils.projects.list.invalidate();
+                },
+            }
+        );
+    };
+
+    const activeProject = activeId ? projects?.find((p) => p.id === activeId) : null;
 
     return (
         <>
@@ -147,67 +312,123 @@ export function Sidebar() {
                             </div>
                         )}
 
-                        <div className="space-y-0.5">
-                            {projects?.map((project) => {
-                                const isActive = pathname === `/project/${project.id}`;
-                                return (
-                                    <div
-                                        key={project.id}
-                                        className={`group flex items-center w-full rounded-lg transition-colors ${isActive
-                                            ? "bg-slate-800 text-white"
-                                            : "text-slate-400 hover:text-white hover:bg-slate-800"
-                                            }`}
-                                    >
-                                        <button
-                                            onClick={() => router.push(`/project/${project.id}`)}
-                                            className={`flex-1 flex items-center gap-3 px-3 py-2 text-sm ${collapsed ? "justify-center" : ""}`}
-                                            title={collapsed ? project.name : undefined}
-                                        >
+                        {projects && projects.length > 0 ? (
+                            <DndContext
+                                sensors={sensors}
+                                collisionDetection={closestCenter}
+                                onDragStart={handleDragStart}
+                                onDragEnd={handleDragEnd}
+                            >
+                                <SortableContext
+                                    items={projects.map((p) => p.id)}
+                                    strategy={verticalListSortingStrategy}
+                                >
+                                    <div className="space-y-0.5">
+                                        {projects.map((project) => (
+                                            <SortableProjectItem
+                                                key={project.id}
+                                                project={project}
+                                                isActive={pathname === `/project/${project.id}`}
+                                                collapsed={collapsed}
+                                                onNavigate={() => router.push(`/project/${project.id}`)}
+                                                onSettings={() => setEditingProjectId(project.id)}
+                                            />
+                                        ))}
+                                    </div>
+                                </SortableContext>
+
+                                {/* Drag overlay */}
+                                <DragOverlay>
+                                    {activeProject ? (
+                                        <div className="flex items-center gap-3 px-3 py-2 bg-slate-800 border border-indigo-500/30 rounded-lg shadow-2xl text-sm text-white">
                                             <div
                                                 className="w-3 h-3 rounded-sm flex-shrink-0"
-                                                style={{ backgroundColor: project.color }}
+                                                style={{ backgroundColor: activeProject.color }}
                                             />
-                                            {!collapsed && (
-                                                <>
-                                                    <span className="truncate flex-1 text-left">{project.name}</span>
-                                                    <span className="text-xs text-slate-600">
-                                                        {(project as any)._count?.tasks ?? 0}
-                                                    </span>
-                                                </>
-                                            )}
-                                        </button>
+                                            <span className="truncate">{activeProject.name}</span>
+                                        </div>
+                                    ) : null}
+                                </DragOverlay>
+                            </DndContext>
+                        ) : (
+                            <div className="space-y-0.5" />
+                        )}
 
-                                        {!collapsed && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setEditingProjectId(project.id);
-                                                }}
-                                                className="p-2 opacity-0 group-hover:opacity-100 text-slate-500 hover:text-indigo-400 transition"
-                                                title="Настройки"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                </svg>
-                                            </button>
-                                        )}
-                                    </div>
-                                );
-                            })}
+                        {collapsed && (
+                            <button
+                                onClick={() => setShowCreateProject(true)}
+                                className="w-full flex items-center justify-center p-2 rounded-lg text-slate-500 hover:text-indigo-400 hover:bg-slate-800 transition"
+                                title="Создать проект"
+                            >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                            </button>
+                        )}
 
-                            {collapsed && (
+                        {/* Completed projects */}
+                        {!collapsed && completedProjects && completedProjects.length > 0 && (
+                            <div className="mt-4">
                                 <button
-                                    onClick={() => setShowCreateProject(true)}
-                                    className="w-full flex items-center justify-center p-2 rounded-lg text-slate-500 hover:text-indigo-400 hover:bg-slate-800 transition"
-                                    title="Создать проект"
+                                    onClick={() => setShowCompleted(!showCompleted)}
+                                    className="flex items-center gap-2 px-3 mb-1 w-full text-xs font-semibold text-slate-600 uppercase tracking-wider hover:text-slate-400 transition"
                                 >
-                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                    <svg
+                                        className={`w-3 h-3 transition-transform ${showCompleted ? "rotate-90" : ""}`}
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                     </svg>
+                                    Завершённые ({completedProjects.length})
                                 </button>
-                            )}
-                        </div>
+
+                                {showCompleted && (
+                                    <div className="space-y-0.5">
+                                        {completedProjects.map((project) => {
+                                            const isActive = pathname === `/project/${project.id}`;
+                                            return (
+                                                <div
+                                                    key={project.id}
+                                                    className={`group flex items-center w-full rounded-lg transition-colors opacity-60 ${isActive
+                                                        ? "bg-slate-800 text-white"
+                                                        : "text-slate-500 hover:text-slate-300 hover:bg-slate-800"
+                                                        }`}
+                                                >
+                                                    <button
+                                                        onClick={() => router.push(`/project/${project.id}`)}
+                                                        className="flex-1 flex items-center gap-3 px-3 py-2 text-sm"
+                                                    >
+                                                        <div className="relative">
+                                                            <div
+                                                                className="w-3 h-3 rounded-sm flex-shrink-0"
+                                                                style={{ backgroundColor: project.color }}
+                                                            />
+                                                            <span className="absolute -top-0.5 -right-0.5 text-[8px] text-green-400">✓</span>
+                                                        </div>
+                                                        <span className="truncate flex-1 text-left line-through">{project.name}</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setEditingProjectId(project.id);
+                                                        }}
+                                                        className="p-2 opacity-0 group-hover:opacity-100 text-slate-500 hover:text-indigo-400 transition"
+                                                        title="Настройки"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </nav>
 

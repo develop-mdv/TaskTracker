@@ -30,6 +30,7 @@ export function ProjectSettingsModal({ projectId, onClose }: ProjectSettingsModa
     // Inputs for confirmation logic
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [hardDeleteMode, setHardDeleteMode] = useState<"TRASH_TASKS" | "DELETE_ALL">("TRASH_TASKS");
+    const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
 
     useEffect(() => {
         if (project) {
@@ -60,6 +61,23 @@ export function ProjectSettingsModal({ projectId, onClose }: ProjectSettingsModa
         },
     });
 
+    const completeProject = trpc.projects.complete.useMutation({
+        onSuccess: () => {
+            utils.projects.list.invalidate();
+            utils.projects.listCompleted.invalidate();
+            onClose();
+            router.push("/inbox");
+        },
+    });
+
+    const reopenProject = trpc.projects.reopen.useMutation({
+        onSuccess: () => {
+            utils.projects.list.invalidate();
+            utils.projects.listCompleted.invalidate();
+            utils.projects.getById.invalidate({ id: projectId });
+        },
+    });
+
     const handleSave = () => {
         if (!name.trim()) return;
         updateProject.mutate({
@@ -71,15 +89,15 @@ export function ProjectSettingsModal({ projectId, onClose }: ProjectSettingsModa
 
     const handleDelete = () => {
         if (hardDeleteMode === "DELETE_ALL") {
-            // Maybe add extra confirmation step for permanent delete?
-            // For now, let's assume the UI selection is enough warning.
             hardDeleteProject.mutate({ id: projectId, mode: "DELETE_ALL" });
         } else {
             hardDeleteProject.mutate({ id: projectId, mode: "TRASH_TASKS" });
         }
     };
 
-    if (isLoading) return null; // Or spinner
+    if (isLoading) return null;
+
+    const isCompleted = !!(project as any)?.completedAt;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -123,6 +141,21 @@ export function ProjectSettingsModal({ projectId, onClose }: ProjectSettingsModa
                 <div className="p-6 overflow-y-auto">
                     {activeTab === "general" ? (
                         <div className="space-y-6">
+                            {isCompleted && (
+                                <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-green-400 text-sm font-medium">✓ Проект завершён</span>
+                                    </div>
+                                    <button
+                                        onClick={() => reopenProject.mutate({ id: projectId })}
+                                        disabled={reopenProject.isPending}
+                                        className="px-3 py-1.5 text-xs bg-green-500/10 hover:bg-green-500/20 text-green-400 rounded-lg transition font-medium"
+                                    >
+                                        {reopenProject.isPending ? "..." : "Переоткрыть"}
+                                    </button>
+                                </div>
+                            )}
+
                             <div>
                                 <label className="block text-sm font-medium text-slate-300 mb-1.5">
                                     Название
@@ -142,7 +175,7 @@ export function ProjectSettingsModal({ projectId, onClose }: ProjectSettingsModa
                                         <button
                                             key={c}
                                             onClick={() => {
-                                                setColor(c); // Update local state immediately for UI feedback
+                                                setColor(c);
                                                 updateProject.mutate({ id: projectId, color: c });
                                             }}
                                             className={`w-8 h-8 rounded-full transition-all ${color === c ? "ring-2 ring-white scale-110" : "hover:scale-110 opacity-70 hover:opacity-100"
@@ -153,14 +186,51 @@ export function ProjectSettingsModal({ projectId, onClose }: ProjectSettingsModa
                                 </div>
                             </div>
 
+                            {/* Complete project */}
+                            {!isCompleted && (
+                                <div className="pt-4 border-t border-slate-700/50">
+                                    {!showCompleteConfirm ? (
+                                        <button
+                                            onClick={() => setShowCompleteConfirm(true)}
+                                            className="w-full px-4 py-2.5 bg-green-500/10 hover:bg-green-500/15 border border-green-500/20 text-green-400 text-sm font-medium rounded-lg transition flex items-center gap-2 justify-center"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            Завершить проект
+                                        </button>
+                                    ) : (
+                                        <div className="p-4 bg-green-500/5 border border-green-500/20 rounded-xl space-y-3">
+                                            <p className="text-sm text-slate-300">
+                                                Все незавершённые задачи проекта будут отмечены как выполненные.
+                                                Вы сможете переоткрыть проект позже.
+                                            </p>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => setShowCompleteConfirm(false)}
+                                                    className="flex-1 px-3 py-2 text-xs text-slate-400 hover:text-white bg-slate-800 rounded-lg"
+                                                >
+                                                    Отмена
+                                                </button>
+                                                <button
+                                                    onClick={() => completeProject.mutate({ id: projectId })}
+                                                    disabled={completeProject.isPending}
+                                                    className="flex-1 px-3 py-2 text-xs text-white bg-green-600 hover:bg-green-700 rounded-lg font-bold"
+                                                >
+                                                    {completeProject.isPending ? "Завершение..." : "Подтвердить"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             <div className="pt-4 border-t border-slate-700/50">
                                 <h3 className="text-sm font-medium text-slate-400 mb-3">Экспорт проекта</h3>
                                 <button
                                     onClick={async () => {
                                         try {
-                                            // Fetch all tasks for this project (including archived)
                                             const allTasks = await utils.tasks.list.fetch({ projectId, includeCompleted: true });
-                                            // Format and download
                                             const text = formatTasksToText(allTasks as any, name);
                                             downloadAsFile(text, `${name.replace(/\s+/g, '_')}_export.txt`);
                                         } catch (e) {

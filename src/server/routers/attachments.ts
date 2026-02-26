@@ -3,6 +3,25 @@ import { router, protectedProcedure } from "../trpc";
 import { getUploadUrl, getDownloadUrl, deleteObject } from "@/lib/minio";
 import { randomUUID } from "crypto";
 
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
+
+const ALLOWED_MIME_TYPES = [
+    // Images
+    "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
+    // Documents
+    "application/pdf", "text/plain", "text/csv", "text/html",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    // Video
+    "video/mp4", "video/webm",
+    // Audio
+    "audio/mpeg", "audio/ogg", "audio/wav",
+    // Archives
+    "application/zip", "application/x-rar-compressed", "application/x-7z-compressed",
+];
+
 export const attachmentsRouter = router({
     getUploadUrl: protectedProcedure
         .input(
@@ -14,6 +33,16 @@ export const attachmentsRouter = router({
             })
         )
         .mutation(async ({ ctx, input }) => {
+            // Validate file size
+            if (input.size && input.size > MAX_FILE_SIZE) {
+                throw new Error("Файл слишком большой. Максимум 20 MB.");
+            }
+
+            // Validate MIME type
+            if (input.mimeType && !ALLOWED_MIME_TYPES.includes(input.mimeType)) {
+                throw new Error("Недопустимый тип файла.");
+            }
+
             // Verify task belongs to user
             const task = await ctx.prisma.task.findFirst({
                 where: { id: input.taskId, userId: ctx.userId },
