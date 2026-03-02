@@ -6,8 +6,8 @@ import { attachmentsRouter } from "./routers/attachments";
 import { recurrenceRouter } from "./routers/recurrence";
 import { statsRouter } from "./routers/stats";
 import { viewPreferencesRouter } from "./routers/viewPreferences";
-
 import { sectionsRouter } from "./routers/sections";
+import { notesRouter } from "./routers/notes";
 
 export const appRouter = router({
     projects: projectsRouter,
@@ -18,6 +18,7 @@ export const appRouter = router({
     stats: statsRouter,
     viewPreferences: viewPreferencesRouter,
     sections: sectionsRouter,
+    notes: notesRouter,
 });
 
 export type AppRouter = typeof appRouter;

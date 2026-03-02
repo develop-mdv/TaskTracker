@@ -17,6 +17,7 @@ model User {
 
   projects        Project[]
   tasks           Task[]
+  notes           Note[]
   viewPreferences ViewPreference[]
 }
 
@@ -36,6 +37,7 @@ model Project {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   tasks          Task[]
+  notes          Note[]
   boardColumns   BoardColumn[]
   sections       ProjectSection[]
   viewPreferences ViewPreference[]
@@ -196,4 +198,26 @@ model ProjectSection {
   tasks Task[]
 
   @@index([projectId])
+}
+
+model Note {
+  id        String    @id @default(cuid())
+  content   String    @db.Text
+  color     String    @default("#FEF08A")
+  pinned    Boolean   @default(false)
+  position  Float     @default(0)
+  deletedAt DateTime?
+
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([deletedAt])
 }
