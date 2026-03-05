@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, forwardRef } from "react";
 import { trpc } from "@/lib/trpc";
 
 interface NoteCardProps {
@@ -13,6 +13,11 @@ interface NoteCardProps {
     };
     rotation: number;
     isTrash?: boolean;
+    isDragging?: boolean;
+    isDragOverlay?: boolean;
+    style?: React.CSSProperties;
+    listeners?: Record<string, Function>;
+    attributes?: Record<string, any>;
 }
 
 const PIN_COLORS: Record<string, string> = {
@@ -33,7 +38,10 @@ const TEXT_COLORS: Record<string, string> = {
     "#E9D5FF": "#581C87",
 };
 
-export function NoteCard({ note, rotation, isTrash }: NoteCardProps) {
+export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteCard(
+    { note, rotation, isTrash, isDragging, isDragOverlay, style: externalStyle, listeners, attributes },
+    ref
+) {
     const [editing, setEditing] = useState(false);
     const [editContent, setEditContent] = useState(note.content);
     const [showMenu, setShowMenu] = useState(false);
@@ -103,19 +111,29 @@ export function NoteCard({ note, rotation, isTrash }: NoteCardProps) {
 
     const COLORS = ["#FEF08A", "#FECDD3", "#BAE6FD", "#BBF7D0", "#FED7AA", "#E9D5FF"];
 
+    const combinedStyle: React.CSSProperties = {
+        ...externalStyle,
+        backgroundColor: note.color,
+        transform: `${externalStyle?.transform || ""} rotate(${isDragging ? 0 : rotation}deg)`.trim(),
+        transition: externalStyle?.transition || "transform 0.3s ease, box-shadow 0.3s ease",
+        opacity: isDragging ? 0.4 : 1,
+        ...(isDragOverlay ? { boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)", transform: "rotate(3deg) scale(1.05)", cursor: "grabbing" } : {}),
+    };
+
     return (
         <div
-            className="sticky-note group relative"
-            style={{
-                backgroundColor: note.color,
-                transform: `rotate(${rotation}deg)`,
-                transition: "transform 0.3s ease, box-shadow 0.3s ease",
-            }}
+            ref={ref}
+            className={`sticky-note group relative ${isDragging ? "z-0" : ""}`}
+            style={combinedStyle}
+            {...(attributes || {})}
+            {...(listeners || {})}
             onMouseEnter={(e) => {
+                if (isDragging || isDragOverlay) return;
                 (e.currentTarget as HTMLElement).style.transform = "rotate(0deg) scale(1.05)";
                 (e.currentTarget as HTMLElement).style.zIndex = "10";
             }}
             onMouseLeave={(e) => {
+                if (isDragging || isDragOverlay) return;
                 (e.currentTarget as HTMLElement).style.transform = `rotate(${rotation}deg)`;
                 (e.currentTarget as HTMLElement).style.zIndex = "auto";
             }}
@@ -135,12 +153,13 @@ export function NoteCard({ note, rotation, isTrash }: NoteCardProps) {
             )}
 
             {/* Actions menu button */}
-            {!isTrash && (
+            {!isTrash && !isDragOverlay && (
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
                         setShowMenu(!showMenu);
                     }}
+                    onPointerDown={(e) => e.stopPropagation()}
                     className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 flex items-center justify-center rounded-full hover:bg-black/10"
                     style={{ color: textColor }}
                 >
@@ -155,6 +174,7 @@ export function NoteCard({ note, rotation, isTrash }: NoteCardProps) {
                 <div
                     ref={menuRef}
                     className="absolute top-8 right-2 z-50 bg-slate-900 rounded-xl shadow-2xl border border-slate-700 py-2 min-w-[180px]"
+                    onPointerDown={(e) => e.stopPropagation()}
                 >
                     {/* Color picker */}
                     <div className="px-3 py-2">
@@ -229,12 +249,13 @@ export function NoteCard({ note, rotation, isTrash }: NoteCardProps) {
 
             {/* Content */}
             <div className="pt-4" style={{ color: textColor }}>
-                {editing && !isTrash ? (
+                {editing && !isTrash && !isDragOverlay ? (
                     <textarea
                         ref={textareaRef}
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
                         onBlur={handleSave}
+                        onPointerDown={(e) => e.stopPropagation()}
                         onKeyDown={(e) => {
                             if (e.key === "Escape") {
                                 setEditContent(note.content);
@@ -247,12 +268,15 @@ export function NoteCard({ note, rotation, isTrash }: NoteCardProps) {
                     />
                 ) : (
                     <p
-                        className={`text-sm leading-relaxed font-medium whitespace-pre-wrap break-words ${!isTrash ? "cursor-text" : ""}`}
+                        className={`text-sm leading-relaxed font-medium whitespace-pre-wrap break-words ${!isTrash && !isDragOverlay ? "cursor-text" : ""}`}
                         onClick={() => {
-                            if (!isTrash) {
+                            if (!isTrash && !isDragOverlay) {
                                 setEditContent(note.content);
                                 setEditing(true);
                             }
+                        }}
+                        onPointerDown={(e) => {
+                            if (editing) e.stopPropagation();
                         }}
                         style={{ minHeight: "40px" }}
                     >
@@ -262,4 +286,4 @@ export function NoteCard({ note, rotation, isTrash }: NoteCardProps) {
             </div>
         </div>
     );
-}
+});

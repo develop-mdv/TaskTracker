@@ -119,4 +119,30 @@ export const notesRouter = router({
                 where: { id: input.id, userId: ctx.userId },
             });
         }),
+
+    reorder: protectedProcedure
+        .input(
+            z.object({
+                items: z.array(
+                    z.object({
+                        id: z.string(),
+                        position: z.number(),
+                        pinned: z.boolean().optional(),
+                    })
+                ),
+            })
+        )
+        .mutation(async ({ ctx, input }) => {
+            const ops = input.items.map((item) => {
+                const data: any = { position: item.position };
+                if (item.pinned !== undefined) {
+                    data.pinned = item.pinned;
+                }
+                return ctx.prisma.note.update({
+                    where: { id: item.id, userId: ctx.userId },
+                    data,
+                });
+            });
+            await ctx.prisma.$transaction(ops);
+        }),
 });
