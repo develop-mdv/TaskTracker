@@ -325,7 +325,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
 
     const handleDownload = async (attachmentId: string, filename: string) => {
         try {
-            const { downloadUrl } = await getDownloadUrl.mutateAsync({ id: attachmentId });
+            const { downloadUrl } = await getDownloadUrl.mutateAsync({ id: attachmentId, download: true });
             const a = document.createElement("a");
             a.href = downloadUrl;
             a.download = filename;
@@ -554,7 +554,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
 
                     {/* Attachments */}
                     <div>
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center justify-between mb-1">
                             <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">
                                 Вложения
                             </label>
@@ -573,6 +573,9 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                 className="hidden"
                                 onChange={(e) => handleFileUpload(e.target.files)}
                             />
+                        </div>
+                        <div className="text-[10px] text-slate-600 mb-3 leading-tight">
+                            Поддерживаются: картинки, видео, аудио, PDF, документы и архивы (не более 20 МБ)
                         </div>
 
                         {uploadError && (

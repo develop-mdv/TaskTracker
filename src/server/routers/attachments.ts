@@ -69,7 +69,7 @@ export const attachmentsRouter = router({
         }),
 
     getDownloadUrl: protectedProcedure
-        .input(z.object({ id: z.string() }))
+        .input(z.object({ id: z.string(), download: z.boolean().optional() }))
         .mutation(async ({ ctx, input }) => {
             const attachment = await ctx.prisma.attachment.findFirst({
                 where: { id: input.id },
@@ -79,7 +79,10 @@ export const attachmentsRouter = router({
                 throw new Error("Attachment not found");
             }
 
-            const url = await getDownloadUrl(attachment.s3Key);
+            const url = await getDownloadUrl(
+                attachment.s3Key,
+                input.download ? attachment.filename : undefined
+            );
             return { downloadUrl: url };
         }),
 
