@@ -450,13 +450,13 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                     }
                                     setEditDescription(null);
                                 }}
-                                rows={5}
+                                rows={12}
                                 autoFocus
-                                className="w-full mt-2 px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none"
+                                className="w-full mt-2 px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none max-h-[50vh] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-slate-800/50 [&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-500"
                             />
                         ) : (
                             <div
-                                className="mt-2 text-sm text-slate-300 cursor-text hover:bg-slate-800/30 rounded-lg p-3 transition min-h-[60px] whitespace-pre-wrap"
+                                className="mt-2 text-sm text-slate-300 cursor-text hover:bg-slate-800/30 rounded-lg p-3 transition min-h-[60px] whitespace-pre-wrap max-h-[50vh] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-slate-800/50 [&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-500"
                                 onClick={() => setEditDescription(task.description ?? "")}
                             >
                                 {task.description || (

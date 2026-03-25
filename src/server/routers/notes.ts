@@ -32,7 +32,7 @@ export const notesRouter = router({
         .input(
             z.object({
                 projectId: z.string(),
-                content: z.string().min(1).max(2000),
+                content: z.string().min(1),
                 color: z.string().optional(),
                 pinned: z.boolean().optional(),
             })
@@ -64,7 +64,7 @@ export const notesRouter = router({
         .input(
             z.object({
                 id: z.string(),
-                content: z.string().min(1).max(2000).optional(),
+                content: z.string().min(1).optional(),
                 color: z.string().optional(),
             })
         )

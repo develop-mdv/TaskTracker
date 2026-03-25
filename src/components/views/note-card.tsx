@@ -262,13 +262,13 @@ export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteC
                                 setEditing(false);
                             }
                         }}
-                        className="w-full bg-transparent resize-none outline-none text-sm leading-relaxed font-medium"
+                        className="w-full bg-transparent resize-none outline-none text-sm leading-relaxed font-medium max-h-[250px] overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-black/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-black/20"
                         style={{ color: textColor, minHeight: "60px" }}
                         rows={3}
                     />
                 ) : (
                     <p
-                        className={`text-sm leading-relaxed font-medium whitespace-pre-wrap break-words ${!isTrash && !isDragOverlay ? "cursor-text" : ""}`}
+                        className={`text-sm leading-relaxed font-medium whitespace-pre-wrap break-words max-h-[250px] overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-black/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-black/20 ${!isTrash && !isDragOverlay ? "cursor-text" : ""}`}
                         onClick={() => {
                             if (!isTrash && !isDragOverlay) {
                                 setEditContent(note.content);

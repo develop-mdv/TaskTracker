@@ -98,9 +98,9 @@ export function CreateNoteModal({ projectId, onClose }: CreateNoteModalProps) {
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
                             placeholder="Напишите что-нибудь..."
-                            className="w-full bg-black/5 rounded-lg p-3 text-sm font-medium resize-none outline-none placeholder-black/30 focus:bg-black/10 transition"
+                            className="w-full bg-black/5 rounded-lg p-3 text-sm font-medium resize-none outline-none placeholder-black/30 focus:bg-black/10 transition max-h-[50vh] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-black/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-black/20"
                             style={{ color: "#1E293B", minHeight: "100px" }}
-                            rows={4}
+                            rows={8}
                         />
 
                         {/* Color picker */}
