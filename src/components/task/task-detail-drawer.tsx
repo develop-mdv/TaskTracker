@@ -229,8 +229,6 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
         },
     });
 
-    const getUploadUrl = trpc.attachments.getUploadUrl.useMutation();
-    const getDownloadUrl = trpc.attachments.getDownloadUrl.useMutation();
     const deleteAttachment = trpc.attachments.delete.useMutation({
         onSuccess: () => {
             utils.tasks.getById.invalidate({ id: taskId });
@@ -274,18 +272,20 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                     setUploadError(`«${file.name}» превышает лимит 20 MB`);
                     continue;
                 }
-                const { uploadUrl } = await getUploadUrl.mutateAsync({
-                    taskId: task.id,
-                    filename: file.name,
-                    mimeType: file.type,
-                    size: file.size,
+
+                const formData = new FormData();
+                formData.append("file", file);
+                formData.append("taskId", task.id);
+
+                const res = await fetch("/api/attachments/upload", {
+                    method: "POST",
+                    body: formData,
                 });
 
-                await fetch(uploadUrl, {
-                    method: "PUT",
-                    body: file,
-                    headers: { "Content-Type": file.type },
-                });
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(text || "Ошибка при загрузке");
+                }
             }
             utils.tasks.getById.invalidate({ id: taskId });
         } catch (error: any) {
@@ -299,7 +299,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
 
     const handleDownload = async (attachmentId: string, filename: string) => {
         try {
-            const { downloadUrl } = await getDownloadUrl.mutateAsync({ id: attachmentId, download: true });
+            const downloadUrl = `/api/attachments/${attachmentId}?download=true`;
             const a = document.createElement("a");
             a.href = downloadUrl;
             a.download = filename;

@@ -79,11 +79,6 @@ export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteC
             utils.notes.listTrashed.invalidate();
         },
     });
-    const hardDelete = trpc.notes.hardDelete.useMutation({
-        onSuccess: () => utils.notes.listTrashed.invalidate(),
-    });
-
-    const getUploadUrl = trpc.attachments.getUploadUrl.useMutation();
     const deleteAttachment = trpc.attachments.delete.useMutation({
         onSuccess: () => utils.notes.list.invalidate(),
     });
@@ -94,17 +89,19 @@ export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteC
         try {
             for (const file of Array.from(files)) {
                 if (file.size > 20 * 1024 * 1024) continue; // Skip huge files
-                const { uploadUrl } = await getUploadUrl.mutateAsync({
-                    noteId: note.id,
-                    filename: file.name,
-                    mimeType: file.type,
-                    size: file.size,
+                
+                const formData = new FormData();
+                formData.append("file", file);
+                formData.append("noteId", note.id);
+
+                const res = await fetch("/api/attachments/upload", {
+                    method: "POST",
+                    body: formData,
                 });
-                await fetch(uploadUrl, {
-                    method: "PUT",
-                    body: file,
-                    headers: { "Content-Type": file.type },
-                });
+
+                if (!res.ok) {
+                    throw new Error(await res.text());
+                }
             }
             utils.notes.list.invalidate();
         } catch (error) {
