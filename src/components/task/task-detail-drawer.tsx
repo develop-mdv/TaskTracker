@@ -250,33 +250,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
     } | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-    // Thumbnail URLs cache
-    const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>({});
-
-    // Load thumbnail URLs for image attachments
-    useEffect(() => {
-        if (!task?.attachments) return;
-        const imageAttachments = task.attachments.filter(
-            (att) => getFileCategory(att.mimeType) === "image" && !thumbnailUrls[att.id]
-        );
-        if (imageAttachments.length === 0) return;
-
-        let cancelled = false;
-        (async () => {
-            const newUrls: Record<string, string> = {};
-            for (const att of imageAttachments) {
-                try {
-                    const { downloadUrl } = await getDownloadUrl.mutateAsync({ id: att.id });
-                    if (!cancelled) newUrls[att.id] = downloadUrl;
-                } catch { /* ignore */ }
-            }
-            if (!cancelled) {
-                setThumbnailUrls((prev) => ({ ...prev, ...newUrls }));
-            }
-        })();
-        return () => { cancelled = true; };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [task?.attachments?.map(a => a.id).join(",")]);
+    // No need to fetch presigned urls anymore! We can just use the proxy API directly.
 
     if (isLoading) {
         return (
@@ -339,8 +313,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
 
     const handlePreview = async (att: { id: string; filename: string; mimeType: string | null; size: number | null }) => {
         try {
-            // Use cached thumbnail URL if available
-            const url = thumbnailUrls[att.id] || (await getDownloadUrl.mutateAsync({ id: att.id })).downloadUrl;
+            const url = `/api/attachments/${att.id}`;
             setPreviewAttachment(att);
             setPreviewUrl(url);
         } catch (error) {
@@ -449,6 +422,17 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                         updateTask.mutate({ id: task.id, description: editDescription || null });
                                     }
                                     setEditDescription(null);
+                                }}
+                                onPaste={(e) => {
+                                    if (e.clipboardData.files && e.clipboardData.files.length > 0) {
+                                        const files = Array.from(e.clipboardData.files).filter(f => f.type.startsWith('image/'));
+                                        if (files.length > 0) {
+                                            e.preventDefault();
+                                            const dt = new DataTransfer();
+                                            files.forEach(f => dt.items.add(f));
+                                            handleFileUpload(dt.files);
+                                        }
+                                    }
                                 }}
                                 rows={12}
                                 autoFocus
@@ -597,9 +581,9 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                                     onClick={() => handlePreview(att)}
                                                     className="relative aspect-square rounded-lg overflow-hidden bg-slate-800 border border-slate-700/50 hover:border-indigo-500/50 transition group"
                                                 >
-                                                    {thumbnailUrls[att.id] ? (
+                                                    {getFileCategory(att.mimeType) === "image" ? (
                                                         <img
-                                                            src={thumbnailUrls[att.id]}
+                                                            src={`/api/attachments/${att.id}`}
                                                             alt={att.filename}
                                                             className="w-full h-full object-cover"
                                                         />

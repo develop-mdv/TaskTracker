@@ -129,10 +129,14 @@ model Attachment {
   s3Key     String   // key in MinIO
   createdAt DateTime @default(now())
 
-  taskId String
-  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId String?
+  task   Task?  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  noteId  String?
+  note    Note?  @relation(fields: [noteId], references: [id], onDelete: Cascade)
 
   @@index([taskId])
+  @@index([noteId])
 }
 
 model RecurrenceRule {
@@ -216,6 +220,8 @@ model Note {
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
+  attachments Attachment[]
 
   @@index([projectId])
   @@index([userId])

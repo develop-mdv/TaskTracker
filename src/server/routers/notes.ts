@@ -11,6 +11,7 @@ export const notesRouter = router({
                     userId: ctx.userId,
                     deletedAt: null,
                 },
+                include: { attachments: true },
                 orderBy: { position: "asc" },
             });
         }),
@@ -24,6 +25,7 @@ export const notesRouter = router({
                     userId: ctx.userId,
                     deletedAt: { not: null },
                 },
+                include: { attachments: true },
                 orderBy: { deletedAt: "desc" },
             });
         }),
@@ -57,6 +59,7 @@ export const notesRouter = router({
                     projectId: input.projectId,
                     userId: ctx.userId,
                 },
+                include: { attachments: true },
             });
         }),
 

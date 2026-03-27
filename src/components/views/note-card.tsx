@@ -10,6 +10,12 @@ interface NoteCardProps {
         color: string;
         pinned: boolean;
         createdAt: Date;
+        attachments?: Array<{
+            id: string;
+            filename: string;
+            mimeType: string | null;
+            size: number | null;
+        }>;
     };
     rotation: number;
     isTrash?: boolean;
@@ -47,6 +53,8 @@ export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteC
     const [showMenu, setShowMenu] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [uploading, setUploading] = useState(false);
 
     const utils = trpc.useUtils();
 
@@ -74,6 +82,39 @@ export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteC
     const hardDelete = trpc.notes.hardDelete.useMutation({
         onSuccess: () => utils.notes.listTrashed.invalidate(),
     });
+
+    const getUploadUrl = trpc.attachments.getUploadUrl.useMutation();
+    const deleteAttachment = trpc.attachments.delete.useMutation({
+        onSuccess: () => utils.notes.list.invalidate(),
+    });
+
+    const handleFileUpload = async (files: FileList | null) => {
+        if (!files || files.length === 0) return;
+        setUploading(true);
+        try {
+            for (const file of Array.from(files)) {
+                if (file.size > 20 * 1024 * 1024) continue; // Skip huge files
+                const { uploadUrl } = await getUploadUrl.mutateAsync({
+                    noteId: note.id,
+                    filename: file.name,
+                    mimeType: file.type,
+                    size: file.size,
+                });
+                await fetch(uploadUrl, {
+                    method: "PUT",
+                    body: file,
+                    headers: { "Content-Type": file.type },
+                });
+            }
+            utils.notes.list.invalidate();
+        } catch (error) {
+            console.error("Note attachment upload failed:", error);
+        } finally {
+            setUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            setShowMenu(false);
+        }
+    };
 
     useEffect(() => {
         if (editing && textareaRef.current) {
@@ -214,6 +255,22 @@ export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteC
                             </>
                         )}
                     </button>
+                    {/* Attach file */}
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="w-full px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-800 flex items-center gap-2 transition disabled:opacity-50"
+                    >
+                        <span>📎</span> {uploading ? "Загрузка..." : "Прикрепить файл"}
+                    </button>
+                    {/* Hidden file input */}
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => handleFileUpload(e.target.files)}
+                    />
                     {/* Delete */}
                     <button
                         onClick={() => {
@@ -284,6 +341,54 @@ export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteC
                     </p>
                 )}
             </div>
+
+            {/* Attachments */}
+            {note.attachments && note.attachments.length > 0 && !isDragOverlay && (
+                <div className="mt-4 space-y-2 border-t border-black/10 pt-3" style={{ color: textColor }}>
+                    {note.attachments.map((att) => {
+                        const isImage = att.mimeType?.startsWith("image/");
+                        return (
+                            <div key={att.id} className="relative group flex flex-col gap-1 items-start">
+                                {isImage ? (
+                                    <div className="relative rounded-md overflow-hidden border border-black/10 w-full bg-black/5">
+                                        <img
+                                            src={`/api/attachments/${att.id}`}
+                                            alt={att.filename}
+                                            className="w-full max-h-32 object-contain"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 bg-black/5 px-2 py-1.5 rounded-md max-w-full">
+                                        <span className="text-lg">📎</span>
+                                        <div className="flex flex-col overflow-hidden">
+                                            <a
+                                                href={`/api/attachments/${att.id}?download=true`}
+                                                download={att.filename}
+                                                className="text-[11px] font-semibold underline truncate max-w-full"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                {att.filename}
+                                            </a>
+                                        </div>
+                                    </div>
+                                )}
+                                {!isTrash && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            deleteAttachment.mutate({ id: att.id });
+                                        }}
+                                        className="opacity-0 group-hover:opacity-100 absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow-sm transition-all"
+                                        title="Удалить файл"
+                                    >
+                                        ✕
+                                    </button>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 });

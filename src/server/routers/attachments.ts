@@ -26,7 +26,8 @@ export const attachmentsRouter = router({
     getUploadUrl: protectedProcedure
         .input(
             z.object({
-                taskId: z.string(),
+                taskId: z.string().optional(),
+                noteId: z.string().optional(),
                 filename: z.string(),
                 mimeType: z.string().optional(),
                 size: z.number().optional(),
@@ -43,14 +44,27 @@ export const attachmentsRouter = router({
                 throw new Error("Недопустимый тип файла.");
             }
 
-            // Verify task belongs to user
-            const task = await ctx.prisma.task.findFirst({
-                where: { id: input.taskId, userId: ctx.userId },
-            });
-            if (!task) throw new Error("Task not found");
+            // Verify task or note belongs to user
+            if (!input.taskId && !input.noteId) {
+                throw new Error("Must provide taskId or noteId");
+            }
 
-            const ext = input.filename.split(".").pop() || "";
-            const s3Key = `${ctx.userId}/${input.taskId}/${randomUUID()}.${ext}`;
+            let s3Key = "";
+            if (input.taskId) {
+                const task = await ctx.prisma.task.findFirst({
+                    where: { id: input.taskId, userId: ctx.userId },
+                });
+                if (!task) throw new Error("Task not found");
+                const ext = input.filename.split(".").pop() || "";
+                s3Key = `${ctx.userId}/${input.taskId}/${randomUUID()}.${ext}`;
+            } else if (input.noteId) {
+                const note = await ctx.prisma.note.findFirst({
+                    where: { id: input.noteId, userId: ctx.userId },
+                });
+                if (!note) throw new Error("Note not found");
+                const ext = input.filename.split(".").pop() || "";
+                s3Key = `${ctx.userId}/notes/${input.noteId}/${randomUUID()}.${ext}`;
+            }
 
             const url = await getUploadUrl(s3Key);
 
@@ -62,6 +76,7 @@ export const attachmentsRouter = router({
                     size: input.size,
                     s3Key,
                     taskId: input.taskId,
+                    noteId: input.noteId,
                 },
             });
 
@@ -73,16 +88,20 @@ export const attachmentsRouter = router({
         .mutation(async ({ ctx, input }) => {
             const attachment = await ctx.prisma.attachment.findFirst({
                 where: { id: input.id },
-                include: { task: { select: { userId: true } } },
+                include: { 
+                    task: { select: { userId: true } },
+                    note: { select: { userId: true } }
+                },
             });
-            if (!attachment || attachment.task.userId !== ctx.userId) {
+            if (!attachment) {
+                throw new Error("Attachment not found");
+            }
+            const isOwner = attachment.task?.userId === ctx.userId || attachment.note?.userId === ctx.userId;
+            if (!isOwner) {
                 throw new Error("Attachment not found");
             }
 
-            const url = await getDownloadUrl(
-                attachment.s3Key,
-                input.download ? attachment.filename : undefined
-            );
+            const url = `/api/attachments/${input.id}${input.download ? '?download=true' : ''}`;
             return { downloadUrl: url };
         }),
 
@@ -91,9 +110,16 @@ export const attachmentsRouter = router({
         .mutation(async ({ ctx, input }) => {
             const attachment = await ctx.prisma.attachment.findFirst({
                 where: { id: input.id },
-                include: { task: { select: { userId: true } } },
+                include: { 
+                    task: { select: { userId: true } },
+                    note: { select: { userId: true } }
+                },
             });
-            if (!attachment || attachment.task.userId !== ctx.userId) {
+            if (!attachment) {
+                throw new Error("Attachment not found");
+            }
+            const isOwner = attachment.task?.userId === ctx.userId || attachment.note?.userId === ctx.userId;
+            if (!isOwner) {
                 throw new Error("Attachment not found");
             }
 
