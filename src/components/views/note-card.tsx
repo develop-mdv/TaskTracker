@@ -79,6 +79,9 @@ export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteC
             utils.notes.listTrashed.invalidate();
         },
     });
+    const hardDelete = trpc.notes.hardDelete.useMutation({
+        onSuccess: () => utils.notes.listTrashed.invalidate(),
+    });
     const deleteAttachment = trpc.attachments.delete.useMutation({
         onSuccess: () => utils.notes.list.invalidate(),
     });
