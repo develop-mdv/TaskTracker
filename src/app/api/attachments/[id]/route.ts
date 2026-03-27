@@ -6,9 +6,11 @@ import { minioClient, BUCKET } from "@/lib/minio";
 
 export async function GET(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: any }
 ) {
     try {
+        const routeParams = await params;
+        const id = routeParams.id;
         const session = await getServerSession(authOptions);
         if (!session?.user?.id) {
             return new NextResponse("Unauthorized", { status: 401 });
@@ -18,7 +20,7 @@ export async function GET(
         const forceDownload = url.searchParams.get("download") === "true";
 
         const attachment = await prisma.attachment.findFirst({
-            where: { id: params.id },
+            where: { id },
             include: {
                 task: { select: { userId: true } },
                 note: { select: { userId: true } }
