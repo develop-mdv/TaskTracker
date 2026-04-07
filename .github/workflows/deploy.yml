@@ -26,5 +26,7 @@ jobs:
             docker compose --profile production up -d --build app
             # Restart nginx to ensure it picks up any config changes and maintains connection
             docker compose --profile production restart nginx
+            # Ensure nginx stays connected to shared-web network (needed for korpmes.ru proxy)
+            docker network connect shared-web tasktracker-nginx-1 2>/dev/null || true
             # Prune unused images to save space
             docker image prune -f
