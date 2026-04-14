@@ -15,6 +15,6 @@ export const config = {
         // - /api/health
         // - /_next (static files)
         // - /favicon.ico
-        "/((?!login|api/auth|api/cron|api/health|_next|favicon.ico).*)",
+        "/((?!login|api/auth|api/cron|api/health|eggtimer/privacy|_next|favicon.ico).*)",
     ],
 };
