@@ -49,30 +49,16 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">4. Сторонние сервисы и аналитика</h2>
-            <p>
-              Приложение может использовать базовые встроенные средства операционной системы или сторонние сервисы для сбора анонимной аналитики (например, отчеты о сбоях и ошибках в работе интерфейса), чтобы мы могли улучшать качество и стабильность работы. Эти данные полностью обезличены и не могут быть связаны с конкретным пользователем.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-semibold text-white mb-3">5. Безопасность</h2>
-            <p>
-              Поскольку мы не собираем и не передаем на свои серверы ваши персональные данные, риски их перехвата или утечки с нашей стороны в рамках использования Приложения полностью отсутствуют. Вся работа таймера происходит локально на вашем устройстве.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-semibold text-white mb-3">6. Изменения в Политике конфиденциальности</h2>
+            <h2 className="text-xl font-semibold text-white mb-3">4. Изменения в Политике конфиденциальности</h2>
             <p>
               Мы оставляем за собой право вносить изменения в данную Политику. В случае внесения существенных изменений, обновленная версия будет опубликована на этой странице, доступной по постоянному адресу: <a href="https://kwadle.ru/eggtimer/privacy" className="text-blue-400 hover:text-blue-300 underline underline-offset-4 decoration-blue-400/30">https://kwadle.ru/eggtimer/privacy</a>.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">7. Контакты</h2>
+            <h2 className="text-xl font-semibold text-white mb-3">5. Контакты</h2>
             <p>
-              Если у вас возникнут вопросы, предложения или замечания относительно данной Политики конфиденциальности или работы самого Приложения, вы можете связаться с нами доступными способами.
+              Если у вас возникнут вопросы, предложения или замечания относительно данной Политики конфиденциальности или работы самого Приложения, вы можете связаться с нами по электронной почте: <a href="mailto:develop.mdv@gmail.com" className="text-blue-400 hover:text-blue-300 underline underline-offset-4 decoration-blue-400/30">develop.mdv@gmail.com</a>.
             </p>
           </section>
         </div>
