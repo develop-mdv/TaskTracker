@@ -28,6 +28,9 @@ export function buildTaskListQuery({
 
     if (input.deleted) {
         where.deletedAt = { not: null };
+        if (!input.projectId) {
+            where.deletedFromProjectId = null;
+        }
     } else {
         where.deletedAt = null;
     }
@@ -36,6 +39,17 @@ export function buildTaskListQuery({
         // Fetch all non-deleted tasks.
     } else if (input.archived) {
         where.completedAt = { not: null };
+        if (!input.projectId) {
+            where.OR = [
+                { projectId: null },
+                {
+                    project: {
+                        completedAt: null,
+                        deletedAt: null,
+                    },
+                },
+            ];
+        }
     } else if (!input.deleted) {
         const todayStart = new Date(now);
         todayStart.setHours(0, 0, 0, 0);
@@ -75,7 +89,9 @@ export function buildTaskListQuery({
 
     return {
         where,
-        orderBy: input.archived
+        orderBy: input.deleted
+            ? [{ deletedAt: "desc" }, { position: "asc" }]
+            : input.archived
             ? [{ completedAt: "desc" }, { position: "asc" }]
             : { position: "asc" },
     };

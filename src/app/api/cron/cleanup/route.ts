@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { buildTrashCleanupWhere } from "./cleanup-query";
 
 export async function POST(req: Request) {
     // Verify cron secret
@@ -9,22 +10,18 @@ export async function POST(req: Request) {
     }
 
     try {
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const { taskWhere, projectWhere } = buildTrashCleanupWhere();
 
-        // Hard delete tasks that have been in trash for more than 7 days
-        const result = await prisma.task.deleteMany({
-            where: {
-                deletedAt: {
-                    not: null,
-                    lt: sevenDaysAgo,
-                },
-            },
-        });
+        const [tasksResult, projectsResult] = await prisma.$transaction([
+            prisma.task.deleteMany({ where: taskWhere }),
+            prisma.project.deleteMany({ where: projectWhere }),
+        ]);
 
         return NextResponse.json({
             success: true,
-            deleted: result.count,
+            deleted: tasksResult.count + projectsResult.count,
+            deletedTasks: tasksResult.count,
+            deletedProjects: projectsResult.count,
         });
     } catch (error) {
         console.error("Trash cleanup error:", error);

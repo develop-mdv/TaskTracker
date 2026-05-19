@@ -20,6 +20,47 @@ test("completed project task list filters by project and sorts newest completed 
     assert.deepEqual(query.orderBy, [{ completedAt: "desc" }, { position: "asc" }]);
 });
 
+test("global archive task list hides tasks from completed projects", () => {
+    const query = buildTaskListQuery({
+        userId: "user-1",
+        input: {
+            archived: true,
+        },
+    });
+
+    assert.deepEqual(query.where, {
+        userId: "user-1",
+        deletedAt: null,
+        completedAt: { not: null },
+        OR: [
+            { projectId: null },
+            {
+                project: {
+                    completedAt: null,
+                    deletedAt: null,
+                },
+            },
+        ],
+    });
+    assert.deepEqual(query.orderBy, [{ completedAt: "desc" }, { position: "asc" }]);
+});
+
+test("global deleted task list hides tasks deleted with a project", () => {
+    const query = buildTaskListQuery({
+        userId: "user-1",
+        input: {
+            deleted: true,
+        },
+    });
+
+    assert.deepEqual(query.where, {
+        userId: "user-1",
+        deletedAt: { not: null },
+        deletedFromProjectId: null,
+    });
+    assert.deepEqual(query.orderBy, [{ deletedAt: "desc" }, { position: "asc" }]);
+});
+
 test("active project task list keeps active-or-today-completed behavior", () => {
     const query = buildTaskListQuery({
         userId: "user-1",

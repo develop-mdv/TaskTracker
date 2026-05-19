@@ -1,11 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, type ComponentProps } from "react";
 import { trpc } from "@/lib/trpc";
 import { ListView } from "./list-view";
 import { KanbanBoard } from "./kanban-board";
 import { CreateTaskModal } from "../task/create-task-modal";
 import { ManageSectionsModal } from "../projects/manage-sections-modal";
+
+type ProjectWithSections = {
+    sections?: ComponentProps<typeof ListView>["projectSections"];
+};
 
 interface TaskViewProps {
     section?: string;
@@ -15,6 +19,7 @@ interface TaskViewProps {
     archived?: boolean;
     deleted?: boolean;
     showViewToggle?: boolean;
+    hideHeader?: boolean;
 }
 
 export function TaskView({
@@ -25,6 +30,7 @@ export function TaskView({
     archived,
     deleted,
     showViewToggle = true,
+    hideHeader = false,
 }: TaskViewProps) {
     const [showCreate, setShowCreate] = useState(false);
     const [localViewMode, setLocalViewMode] = useState<string | null>(null);
@@ -42,12 +48,7 @@ export function TaskView({
         },
     });
 
-    // Sync local state when server data arrives
     const serverViewMode = (viewPref as { viewMode: string } | undefined)?.viewMode ?? "list";
-    useEffect(() => {
-        setLocalViewMode(null);
-    }, [serverViewMode]);
-
     const viewMode = localViewMode ?? serverViewMode;
 
     const { data: tasks = [], isLoading: tasksLoading } = trpc.tasks.list.useQuery({
@@ -69,7 +70,9 @@ export function TaskView({
         { id: projectId! },
         { enabled: !!projectId }
     );
-    const sections = (project as any)?.sections ?? [];
+    const sections = (project as ProjectWithSections | undefined)?.sections ?? [];
+    const listTasks = tasks as ComponentProps<typeof ListView>["tasks"];
+    const kanbanTasks = tasks as ComponentProps<typeof KanbanBoard>["tasks"];
 
     // Manage Sections Modal State
     const [showManageSections, setShowManageSections] = useState(false);
@@ -86,6 +89,7 @@ export function TaskView({
     return (
         <div className="h-full flex flex-col">
             {/* Header */}
+            {!hideHeader && (
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50">
                 <div className="flex items-center gap-3">
                     <h1 className="text-xl font-bold text-white">{title}</h1>
@@ -139,6 +143,7 @@ export function TaskView({
                     )}
                 </div>
             </div>
+            )}
 
             {/* Content */}
             <div className="flex-1 overflow-auto p-6">
@@ -149,14 +154,14 @@ export function TaskView({
                 ) : viewMode === "kanban" && !archived && !deleted ? (
                     <KanbanBoard
                         columns={columns}
-                        tasks={tasks as any}
+                        tasks={kanbanTasks}
                         projectId={projectId}
                         section={section}
                         projectSections={sections}
                     />
                 ) : (
                     <ListView
-                        tasks={tasks as any}
+                        tasks={listTasks}
                         projectSections={sections}
                     />
                 )}
