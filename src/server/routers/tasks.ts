@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
+import { buildTaskListQuery } from "./tasks-list-query";
 
 const taskFilterSchema = z.object({
     section: z.enum(["inbox"]).optional(),
@@ -17,64 +18,14 @@ export const tasksRouter = router({
     list: protectedProcedure
         .input(taskFilterSchema)
         .query(async ({ ctx, input }) => {
-            const where: Record<string, unknown> = {
+            const { where, orderBy } = buildTaskListQuery({
                 userId: ctx.userId,
-            };
-
-            if (input.deleted) {
-                where.deletedAt = { not: null };
-            } else {
-                where.deletedAt = null;
-            }
-
-            if (input.includeCompleted) {
-                // Fetch all non-deleted tasks (active + fully archived)
-                // No additional filtering on completedAt
-            } else if (input.archived) {
-                // Show only completed (archived)
-                where.completedAt = { not: null };
-            } else if (!input.deleted) {
-                // Show active tasks OR tasks completed TODAY
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-
-                where.OR = [
-                    { completedAt: null },
-                    { completedAt: { gte: today } }
-                ];
-            }
-
-            if (input.today) {
-                const start = new Date();
-                start.setHours(0, 0, 0, 0);
-                const end = new Date();
-                end.setHours(23, 59, 59, 999);
-                where.OR = [
-                    { dueDate: { gte: start, lte: end } },
-                    {
-                        AND: [
-                            { startDate: { lte: end } },
-                            { endDate: { gte: start } },
-                        ],
-                    },
-                ];
-                // Don't filter by section/project for today view
-            } else {
-                if (input.section) {
-                    where.section = input.section;
-                }
-                if (input.projectId) {
-                    where.projectId = input.projectId;
-                }
-            }
-
-            if (input.boardColumnId) {
-                where.boardColumnId = input.boardColumnId;
-            }
+                input,
+            });
 
             return ctx.prisma.task.findMany({
-                where: where as any,
-                orderBy: { position: "asc" },
+                where,
+                orderBy,
                 include: {
                     project: { select: { id: true, name: true, color: true } },
                     boardColumn: { select: { id: true, name: true, color: true } },

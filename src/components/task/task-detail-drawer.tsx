@@ -241,6 +241,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
 
     const [editTitle, setEditTitle] = useState<string | null>(null);
     const [editDescription, setEditDescription] = useState<string | null>(null);
+    const [editCompletionNote, setEditCompletionNote] = useState<string | null>(null);
 
     // Preview state
     const [previewAttachment, setPreviewAttachment] = useState<{
@@ -288,9 +289,9 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                 }
             }
             utils.tasks.getById.invalidate({ id: taskId });
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Upload failed:", error);
-            setUploadError(error?.message || "Ошибка при загрузке");
+            setUploadError(error instanceof Error ? error.message : "Ошибка при загрузке");
         } finally {
             setUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = "";
@@ -322,6 +323,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
     };
 
     const isCompleted = !!task.completedAt;
+    const completionNote = task.completionNote ?? "";
 
     return (
         <div
@@ -449,6 +451,45 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                             </div>
                         )}
                     </div>
+
+                    {isCompleted && (
+                        <div>
+                            <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                Итог выполнения
+                            </label>
+                            {editCompletionNote !== null ? (
+                                <textarea
+                                    value={editCompletionNote}
+                                    onChange={(e) => setEditCompletionNote(e.target.value)}
+                                    onBlur={() => {
+                                        const nextNote = editCompletionNote.trim();
+                                        if (nextNote !== completionNote) {
+                                            updateTask.mutate({ id: task.id, completionNote: nextNote || null });
+                                        }
+                                        setEditCompletionNote(null);
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Escape") setEditCompletionNote(null);
+                                        if (e.key === "Enter" && e.ctrlKey) {
+                                            (e.target as HTMLTextAreaElement).blur();
+                                        }
+                                    }}
+                                    rows={5}
+                                    autoFocus
+                                    className="w-full mt-2 px-4 py-2.5 bg-slate-800/50 border border-green-500/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 resize-none"
+                                />
+                            ) : (
+                                <div
+                                    className="mt-2 text-sm text-slate-300 cursor-text hover:bg-green-500/5 rounded-lg p-3 transition min-h-[54px] whitespace-pre-wrap border border-green-500/10 bg-green-500/5"
+                                    onClick={() => setEditCompletionNote(completionNote)}
+                                >
+                                    {completionNote || (
+                                        <span className="text-slate-600">Нажмите, чтобы добавить итог выполнения...</span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Fields grid */}
                     <div className="grid grid-cols-2 gap-4">

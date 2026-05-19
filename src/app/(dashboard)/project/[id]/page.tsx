@@ -5,7 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { TaskView } from "@/components/views/task-view";
 import { NotesBoard } from "@/components/views/notes-board";
 
-type Tab = "tasks" | "notes";
+type Tab = "tasks" | "notes" | "completed";
 
 export default function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -51,6 +51,23 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                             Заметки
                         </span>
                     </button>
+                    <button
+                        onClick={() => setActiveTab("completed")}
+                        className={`
+                            px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200
+                            ${activeTab === "completed"
+                                ? "bg-green-600 text-white shadow-lg shadow-green-500/25"
+                                : "text-slate-400 hover:text-white hover:bg-slate-700/50"
+                            }
+                        `}
+                    >
+                        <span className="flex items-center gap-1.5">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Выполненные
+                        </span>
+                    </button>
                 </div>
             </div>
 
@@ -60,6 +77,13 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     <TaskView
                         projectId={id}
                         title={project?.name ?? "Проект"}
+                    />
+                ) : activeTab === "completed" ? (
+                    <TaskView
+                        projectId={id}
+                        title="Выполненные"
+                        archived
+                        showViewToggle={false}
                     />
                 ) : (
                     <NotesBoard projectId={id} />

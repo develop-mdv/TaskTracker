@@ -28,6 +28,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+.codex-*.log
+
+# local agent/worktree artifacts
+.worktrees/
+worktrees/
+docs/superpowers/plans/
 
 # env files (KEEP .env.example in git!)
 .env
