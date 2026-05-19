@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
+import { buildCompletedProjectListQuery, buildDeletedProjectListQuery } from "./projects-list-query";
 
 export const projectsRouter = router({
     list: protectedProcedure.query(async ({ ctx }) => {
@@ -19,19 +20,11 @@ export const projectsRouter = router({
     }),
 
     listCompleted: protectedProcedure.query(async ({ ctx }) => {
-        return ctx.prisma.project.findMany({
-            where: { userId: ctx.userId, completedAt: { not: null }, deletedAt: null },
-            orderBy: { completedAt: "desc" },
-            include: {
-                _count: {
-                    select: {
-                        tasks: {
-                            where: { completedAt: null, deletedAt: null },
-                        },
-                    },
-                },
-            },
-        });
+        return ctx.prisma.project.findMany(buildCompletedProjectListQuery({ userId: ctx.userId }));
+    }),
+
+    listDeleted: protectedProcedure.query(async ({ ctx }) => {
+        return ctx.prisma.project.findMany(buildDeletedProjectListQuery({ userId: ctx.userId }));
     }),
 
     getById: protectedProcedure
