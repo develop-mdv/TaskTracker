@@ -33,7 +33,6 @@ yarn-error.log*
 # local agent/worktree artifacts
 .worktrees/
 worktrees/
-docs/superpowers/plans/
 docs/superpowers/
 
 # env files (KEEP .env.example in git!)
