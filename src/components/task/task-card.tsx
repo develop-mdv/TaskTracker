@@ -15,6 +15,7 @@ interface Task {
     startDate?: string | Date | null;
     endDate?: string | Date | null;
     completedAt?: string | Date | null;
+    completionNote?: string | null;
     deletedAt?: string | Date | null;
     section?: string | null;
     projectId?: string | null;
@@ -129,7 +130,10 @@ export const TaskCard = memo(function TaskCard({
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                copyToClipboard(formatTaskToText(task as any));
+                                copyToClipboard(formatTaskToText({
+                                    ...task,
+                                    section: task.section ? { name: task.section } : null,
+                                }));
                                 // Simple alert or toast? Let's use a small visual indicator or standard alert for now
                                 // alert("!"); // Too intrusive
                                 // Ideally a toast, but I don't see toast lib.
@@ -149,7 +153,24 @@ export const TaskCard = memo(function TaskCard({
                         </p>
                     )}
 
+                    {isCompleted && task.completionNote && (
+                        <div className="mt-2 rounded-lg border border-green-500/10 bg-green-500/5 px-3 py-2">
+                            <div className="text-[10px] font-semibold uppercase tracking-wider text-green-400/80">
+                                Итог
+                            </div>
+                            <p className="mt-1 text-xs text-slate-300 whitespace-pre-wrap line-clamp-3">
+                                {task.completionNote}
+                            </p>
+                        </div>
+                    )}
+
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        {isCompleted && task.completedAt && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-400">
+                                Выполнено {formatDate(task.completedAt)}
+                            </span>
+                        )}
+
                         {task.dueDate && (
                             <span
                                 className={`text-xs px-2 py-0.5 rounded-full ${isOverdue
