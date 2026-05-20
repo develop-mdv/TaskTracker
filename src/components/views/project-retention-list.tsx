@@ -29,15 +29,19 @@ function ProjectRow({
     mode,
     onPrimary,
     onSecondary,
+    onDelete,
     primaryPending,
     secondaryPending,
+    deletePending,
 }: {
     project: RetainedProject;
     mode: RetentionMode;
     onPrimary: () => void;
     onSecondary: () => void;
+    onDelete?: () => void;
     primaryPending: boolean;
     secondaryPending: boolean;
+    deletePending?: boolean;
 }) {
     const date = mode === "archive" ? project.completedAt : project.deletedAt;
     const dateLabel = mode === "archive" ? "Завершён" : "Удалён";
@@ -51,7 +55,16 @@ function ProjectRow({
                             className="h-3 w-3 flex-shrink-0 rounded-sm"
                             style={{ backgroundColor: project.color }}
                         />
-                        <span className="truncate text-sm font-semibold text-white">{project.name}</span>
+                        {mode === "archive" ? (
+                            <button
+                                onClick={onSecondary}
+                                className="truncate text-left text-sm font-semibold text-white transition hover:text-indigo-300"
+                            >
+                                {project.name}
+                            </button>
+                        ) : (
+                            <span className="truncate text-sm font-semibold text-white">{project.name}</span>
+                        )}
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                         <span>{project._count?.tasks ?? 0} задач</span>
@@ -62,7 +75,7 @@ function ProjectRow({
                     )}
                 </div>
 
-                <div className="flex flex-shrink-0 items-center gap-2 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
+                <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
                     <button
                         onClick={onPrimary}
                         disabled={primaryPending}
@@ -70,16 +83,32 @@ function ProjectRow({
                     >
                         {mode === "archive" ? "Вернуть" : "Восстановить"}
                     </button>
-                    <button
-                        onClick={onSecondary}
-                        disabled={secondaryPending}
-                        className={`rounded-lg px-3 py-1.5 text-xs font-medium transition disabled:opacity-50 ${mode === "archive"
-                            ? "bg-slate-700/70 text-slate-300 hover:bg-slate-700"
-                            : "bg-red-500/10 text-red-300 hover:bg-red-500/20"
-                            }`}
-                    >
-                        {mode === "archive" ? "Открыть" : "Удалить навсегда"}
-                    </button>
+                    {mode === "archive" ? (
+                        <>
+                            <button
+                                onClick={onSecondary}
+                                disabled={secondaryPending}
+                                className="rounded-lg bg-slate-700/70 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-700 disabled:opacity-50"
+                            >
+                                Открыть
+                            </button>
+                            <button
+                                onClick={onDelete}
+                                disabled={deletePending}
+                                className="rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+                            >
+                                Удалить
+                            </button>
+                        </>
+                    ) : (
+                        <button
+                            onClick={onSecondary}
+                            disabled={secondaryPending}
+                            className="rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+                        >
+                            Удалить навсегда
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
@@ -105,6 +134,15 @@ export function ProjectRetentionList({ mode }: { mode: RetentionMode }) {
     const restoreProject = trpc.projects.restore.useMutation({
         onSuccess: () => {
             utils.projects.list.invalidate();
+            utils.projects.listDeleted.invalidate();
+            utils.tasks.list.invalidate();
+        },
+    });
+
+    const softDeleteProject = trpc.projects.softDelete.useMutation({
+        onSuccess: () => {
+            utils.projects.list.invalidate();
+            utils.projects.listCompleted.invalidate();
             utils.projects.listDeleted.invalidate();
             utils.tasks.list.invalidate();
         },
@@ -145,6 +183,7 @@ export function ProjectRetentionList({ mode }: { mode: RetentionMode }) {
                     mode={mode}
                     primaryPending={reopenProject.isPending || restoreProject.isPending}
                     secondaryPending={hardDeleteProject.isPending}
+                    deletePending={softDeleteProject.isPending}
                     onPrimary={() => {
                         if (mode === "archive") {
                             reopenProject.mutate({ id: project.id });
@@ -159,6 +198,7 @@ export function ProjectRetentionList({ mode }: { mode: RetentionMode }) {
                             hardDeleteProject.mutate({ id: project.id, mode: "DELETE_ALL" });
                         }
                     }}
+                    onDelete={() => softDeleteProject.mutate({ id: project.id })}
                 />
             ))}
         </div>
