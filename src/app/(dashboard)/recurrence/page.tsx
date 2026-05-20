@@ -117,6 +117,12 @@ export default function RecurrencePage() {
                                             </svg>
                                             {formatFrequency(rule)}
                                         </span>
+                                        {rule.timeOfDay && (
+                                            <span>в {rule.timeOfDay}</span>
+                                        )}
+                                        {rule.createAheadDays > 0 && (
+                                            <span>за {rule.createAheadDays} дн.</span>
+                                        )}
                                         {rule.priority > 0 && (
                                             <span className={`px-1.5 py-0.5 rounded text-xs ${rule.priority === 4 ? "bg-red-500/10 text-red-400" :
                                                     rule.priority === 3 ? "bg-orange-500/10 text-orange-400" :

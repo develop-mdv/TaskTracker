@@ -159,8 +159,8 @@ crontab -e
 Добавьте строки (замените `YOUR_CRON_SECRET` на значение из `.env`):
 
 ```cron
-# Генерация повторяющихся задач — каждый день в 06:00 UTC
-0 6 * * * curl -s -X POST http://localhost:3000/api/cron/recurrence -H "Authorization: Bearer YOUR_CRON_SECRET" > /dev/null 2>&1
+# Генерация повторяющихся задач — каждые 5 минут
+*/5 * * * * curl -s -X POST http://localhost:3000/api/cron/recurrence -H "Authorization: Bearer YOUR_CRON_SECRET" > /dev/null 2>&1
 
 # Очистка корзины — каждое воскресенье в 03:00 UTC
 0 3 * * 0 curl -s -X POST http://localhost:3000/api/cron/cleanup -H "Authorization: Bearer YOUR_CRON_SECRET" > /dev/null 2>&1

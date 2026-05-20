@@ -1,14 +1,17 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
+
+type Frequency = "daily" | "weekly" | "monthly" | "custom";
 
 const FREQUENCIES = [
     { value: "daily", label: "Ежедневно" },
     { value: "weekly", label: "Еженедельно" },
     { value: "monthly", label: "Ежемесячно" },
     { value: "custom", label: "Свой интервал" },
-];
+] satisfies Array<{ value: Frequency; label: string }>;
 
 const DAYS_OF_WEEK = [
     { value: 1, label: "Пн" },
@@ -43,10 +46,12 @@ export function RecurrenceModal({ onClose, editRuleId }: RecurrenceModalProps) {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [priority, setPriority] = useState(0);
-    const [frequency, setFrequency] = useState<"daily" | "weekly" | "monthly" | "custom">("daily");
+    const [frequency, setFrequency] = useState<Frequency>("daily");
     const [interval, setInterval] = useState(1);
     const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
     const [dayOfMonth, setDayOfMonth] = useState<number | "">(1);
+    const [createAheadDays, setCreateAheadDays] = useState(0);
+    const [timeOfDay, setTimeOfDay] = useState("");
     const [projectId, setProjectId] = useState<string>("");
 
     useEffect(() => {
@@ -54,10 +59,12 @@ export function RecurrenceModal({ onClose, editRuleId }: RecurrenceModalProps) {
             setTitle(editRule.title);
             setDescription(editRule.description ?? "");
             setPriority(editRule.priority);
-            setFrequency(editRule.frequency as any);
+            setFrequency(isFrequency(editRule.frequency) ? editRule.frequency : "daily");
             setInterval(editRule.interval);
             setDaysOfWeek(editRule.daysOfWeek ?? []);
             setDayOfMonth(editRule.dayOfMonth ?? "");
+            setCreateAheadDays(editRule.createAheadDays ?? 0);
+            setTimeOfDay(editRule.timeOfDay ?? "");
             setProjectId(editRule.projectId ?? "");
         }
     }, [editRule]);
@@ -94,8 +101,11 @@ export function RecurrenceModal({ onClose, editRuleId }: RecurrenceModalProps) {
             interval,
             daysOfWeek: frequency === "weekly" ? daysOfWeek : undefined,
             dayOfMonth: frequency === "monthly" && dayOfMonth !== "" ? Number(dayOfMonth) : undefined,
+            createAheadDays,
+            timeOfDay: timeOfDay || null,
             projectId: projectId || null,
             section: projectId ? null : ("inbox" as const),
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Moscow",
         };
 
         if (editRuleId) {
@@ -159,7 +169,7 @@ export function RecurrenceModal({ onClose, editRuleId }: RecurrenceModalProps) {
                                 <button
                                     key={f.value}
                                     type="button"
-                                    onClick={() => setFrequency(f.value as any)}
+                                    onClick={() => setFrequency(f.value)}
                                     className={`px-3 py-2 rounded-lg text-xs font-medium transition ${frequency === f.value
                                             ? "bg-indigo-600 text-white"
                                             : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
@@ -249,6 +259,31 @@ export function RecurrenceModal({ onClose, editRuleId }: RecurrenceModalProps) {
                         </div>
                     )}
 
+                    {/* Release timing */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-1.5">Создавать за N дней</label>
+                            <input
+                                type="number"
+                                min={0}
+                                max={365}
+                                value={createAheadDays}
+                                onChange={(e) => setCreateAheadDays(Math.max(0, Number(e.target.value) || 0))}
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-1.5">Время выполнения</label>
+                            <input
+                                type="time"
+                                value={timeOfDay}
+                                onChange={(e) => setTimeOfDay(e.target.value)}
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                            />
+                            <p className="text-xs text-slate-500 mt-1">Если указано, задача появится за 15 минут.</p>
+                        </div>
+                    </div>
+
                     {/* Priority & Project */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -299,4 +334,8 @@ export function RecurrenceModal({ onClose, editRuleId }: RecurrenceModalProps) {
             </div>
         </div>
     );
+}
+
+function isFrequency(value: string): value is Frequency {
+    return value === "daily" || value === "weekly" || value === "monthly" || value === "custom";
 }
