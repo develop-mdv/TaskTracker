@@ -8,12 +8,12 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String?
-  passwordHash  String
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   projects        Project[]
   tasks           Task[]
@@ -22,24 +22,24 @@ model User {
 }
 
 model Project {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   name        String
   description String?
-  color       String   @default("#6366f1")
-  position    Float    @default(0)
-  archived    Boolean  @default(false)
+  color       String    @default("#6366f1")
+  position    Float     @default(0)
+  archived    Boolean   @default(false)
   completedAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  tasks          Task[]
-  notes          Note[]
-  boardColumns   BoardColumn[]
-  sections       ProjectSection[]
+  tasks           Task[]
+  notes           Note[]
+  boardColumns    BoardColumn[]
+  sections        ProjectSection[]
   viewPreferences ViewPreference[]
 
   @@index([userId])
@@ -58,7 +58,7 @@ model BoardColumn {
   project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   // For global sections (inbox) — null projectId + section name
-  section   String?  // "inbox" | null (null = project-scoped)
+  section String? // "inbox" | null (null = project-scoped)
 
   tasks Task[]
 
@@ -77,12 +77,12 @@ model Task {
   // Placement: a task lives in a section OR a project (not both)
   // section: "inbox" | null
   // if projectId is set, section should be null
-  section   String?  // "inbox" | null
+  section   String? // "inbox" | null
   projectId String?
   project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
-  projectSectionId String?
-  projectSection   ProjectSection? @relation(fields: [projectSectionId], references: [id], onDelete: SetNull)
+  projectSectionId     String?
+  projectSection       ProjectSection? @relation(fields: [projectSectionId], references: [id], onDelete: SetNull)
   deletedFromProjectId String?
 
   // Kanban column (optional, used in kanban view)
@@ -95,9 +95,9 @@ model Task {
   endDate   DateTime?
 
   // Soft states
-  completedAt DateTime?
-  completionNote String?  @db.Text // Note added when completing the task
-  deletedAt   DateTime?
+  completedAt    DateTime?
+  completionNote String?   @db.Text // Note added when completing the task
+  deletedAt      DateTime?
 
   // Recurrence
   recurrenceRuleId String?
@@ -125,27 +125,27 @@ model Attachment {
   id        String   @id @default(cuid())
   filename  String
   mimeType  String?
-  size      Int?     // bytes
-  s3Key     String   // key in MinIO
+  size      Int? // bytes
+  s3Key     String // key in MinIO
   createdAt DateTime @default(now())
 
   taskId String?
-  task   Task?  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task   Task?   @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
-  noteId  String?
-  note    Note?  @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  noteId String?
+  note   Note?   @relation(fields: [noteId], references: [id], onDelete: Cascade)
 
   @@index([taskId])
   @@index([noteId])
 }
 
 model RecurrenceRule {
-  id          String   @id @default(cuid())
+  id         String @id @default(cuid())
   // Recurrence pattern
-  frequency   String   // "daily" | "weekly" | "monthly" | "custom"
-  interval    Int      @default(1) // every N days/weeks/months
-  daysOfWeek  Int[]    @default([]) // 0=Sun..6=Sat, for weekly
-  dayOfMonth  Int?     // for monthly
+  frequency  String // "daily" | "weekly" | "monthly" | "custom"
+  interval   Int    @default(1) // every N days/weeks/months
+  daysOfWeek Int[]  @default([]) // 0=Sun..6=Sat, for weekly
+  dayOfMonth Int? // for monthly
 
   // Template fields (copied to generated tasks)
   title       String
@@ -156,11 +156,14 @@ model RecurrenceRule {
   projectId   String?
 
   // Timezone for generation
-  timezone    String   @default("Europe/Amsterdam")
+  timezone        String  @default("Europe/Amsterdam")
+  createAheadDays Int     @default(0)
+  timeOfDay       String?
 
   // Track last generation
-  lastGeneratedAt DateTime?
-  active          Boolean  @default(true)
+  lastGeneratedAt  DateTime?
+  lastGeneratedFor DateTime?
+  active           Boolean   @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -171,15 +174,15 @@ model RecurrenceRule {
 }
 
 model ViewPreference {
-  id   String @id @default(cuid())
+  id String @id @default(cuid())
 
   // Context: which section or project this preference applies to
   // Either section or projectId is set, not both
-  section   String?  // "inbox" | "today" | "archive" | "trash"
+  section   String? // "inbox" | "today" | "archive" | "trash"
   projectId String?
   project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  viewMode  String   @default("list") // "list" | "kanban"
+  viewMode String @default("list") // "list" | "kanban"
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -213,13 +216,13 @@ model Note {
   deletedAt DateTime?
 
   projectId String
-  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   attachments Attachment[]
 
