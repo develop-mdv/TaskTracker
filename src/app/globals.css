@@ -49,6 +49,11 @@
   border-left-width: 3px;
 }
 
+.calendar-wrapper .fc .planned-recurrence-event {
+  border-style: dashed;
+  opacity: 0.86;
+}
+
 .calendar-wrapper .fc .fc-daygrid-day:hover {
   background-color: rgba(99, 102, 241, 0.04);
 }

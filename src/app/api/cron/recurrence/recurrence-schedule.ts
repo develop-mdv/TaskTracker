@@ -28,6 +28,22 @@ export type RecurrenceOccurrence = {
     releaseAt: Date;
 };
 
+export type ExistingGeneratedTask = {
+    recurrenceRuleId: string | null;
+    dueDate: Date | null;
+};
+
+export type PlannedRecurrenceEvent = {
+    id: string;
+    recurrenceRuleId: string;
+    title: string;
+    dueAt: Date;
+    releaseAt: Date;
+    projectId: string | null;
+    section: string | null;
+    priority: number;
+};
+
 type LocalDate = {
     year: number;
     month: number;
@@ -43,6 +59,16 @@ export function getNextOccurrenceToGenerate(
     rule: RecurrenceScheduleRule,
     now: Date
 ): RecurrenceOccurrence | null {
+    const [occurrence] = getOccurrencesInRange(rule, rule.createdAt, addUtcDays(now, 366 * 5));
+    if (!occurrence) return null;
+    return occurrence.releaseAt <= now ? occurrence : null;
+}
+
+export function getOccurrencesInRange(
+    rule: RecurrenceScheduleRule,
+    from: Date,
+    to: Date
+): RecurrenceOccurrence[] {
     const timezone = normalizeTimeZone(rule.timezone);
     const interval = Math.max(1, rule.interval);
     const anchorDate = getLocalDate(rule.createdAt, timezone);
@@ -51,6 +77,7 @@ export function getNextOccurrenceToGenerate(
     const startDate = lastGeneratedBoundary
         ? addLocalDays(getLocalDate(lastGeneratedBoundary, timezone), 1)
         : createdDate;
+    const occurrences: RecurrenceOccurrence[] = [];
 
     for (let offset = 0; offset <= 366 * 5; offset++) {
         const candidateDate = addLocalDays(startDate, offset);
@@ -73,10 +100,48 @@ export function getNextOccurrenceToGenerate(
         }
 
         const releaseAt = getReleaseAt(rule, candidateDate, dueAt, timezone);
-        return releaseAt <= now ? { dueAt, releaseAt } : null;
+        if (dueAt > to) {
+            break;
+        }
+        if (dueAt >= from) {
+            occurrences.push({ dueAt, releaseAt });
+        }
     }
 
-    return null;
+    return occurrences;
+}
+
+export function buildPlannedRecurrenceEvents({
+    rules,
+    existingTasks,
+    from,
+    to,
+}: {
+    rules: RecurrenceScheduleRule[];
+    existingTasks: ExistingGeneratedTask[];
+    from: Date;
+    to: Date;
+}): PlannedRecurrenceEvent[] {
+    const generatedKeys = new Set(
+        existingTasks
+            .filter((task) => task.recurrenceRuleId && task.dueDate)
+            .map((task) => `${task.recurrenceRuleId}:${task.dueDate?.toISOString()}`)
+    );
+
+    return rules.flatMap((rule) =>
+        getOccurrencesInRange(rule, from, to)
+            .filter((occurrence) => !generatedKeys.has(`${rule.id}:${occurrence.dueAt.toISOString()}`))
+            .map((occurrence) => ({
+                id: `planned:${rule.id}:${occurrence.dueAt.toISOString()}`,
+                recurrenceRuleId: rule.id,
+                title: rule.title,
+                dueAt: occurrence.dueAt,
+                releaseAt: occurrence.releaseAt,
+                projectId: rule.projectId,
+                section: rule.section,
+                priority: rule.priority,
+            }))
+    );
 }
 
 export function buildGeneratedTaskData(rule: RecurrenceScheduleRule, dueAt: Date) {
@@ -240,6 +305,10 @@ function addLocalDays(date: LocalDate, amount: number): LocalDate {
         month: next.getUTCMonth() + 1,
         day: next.getUTCDate(),
     };
+}
+
+function addUtcDays(date: Date, amount: number): Date {
+    return new Date(date.getTime() + amount * DAY_MS);
 }
 
 function daysBetween(start: LocalDate, end: LocalDate): number {

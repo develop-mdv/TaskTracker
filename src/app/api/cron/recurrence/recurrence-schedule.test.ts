@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+    buildPlannedRecurrenceEvents,
     buildGeneratedTaskData,
+    getOccurrencesInRange,
     getNextOccurrenceToGenerate,
     type RecurrenceScheduleRule,
 } from "./recurrence-schedule";
@@ -85,6 +87,56 @@ test("legacy rules use lastGeneratedAt when lastGeneratedFor is missing", () => 
         dueAt: new Date("2026-05-19T21:00:00.000Z"),
         releaseAt: new Date("2026-05-19T21:00:00.000Z"),
     });
+});
+
+test("range occurrence lookup returns scheduled future due dates", () => {
+    const rule = makeRule({ timeOfDay: "10:00" });
+
+    const occurrences = getOccurrencesInRange(
+        rule,
+        new Date("2026-05-20T00:00:00.000Z"),
+        new Date("2026-05-28T00:00:00.000Z")
+    );
+
+    assert.deepEqual(occurrences, [
+        {
+            dueAt: new Date("2026-05-20T07:00:00.000Z"),
+            releaseAt: new Date("2026-05-20T06:45:00.000Z"),
+        },
+        {
+            dueAt: new Date("2026-05-27T07:00:00.000Z"),
+            releaseAt: new Date("2026-05-27T06:45:00.000Z"),
+        },
+    ]);
+});
+
+test("planned recurrence events skip occurrences that already have generated tasks", () => {
+    const rule = makeRule({ timeOfDay: "10:00" });
+
+    const planned = buildPlannedRecurrenceEvents({
+        rules: [rule],
+        existingTasks: [
+            {
+                recurrenceRuleId: "rule-1",
+                dueDate: new Date("2026-05-20T07:00:00.000Z"),
+            },
+        ],
+        from: new Date("2026-05-20T00:00:00.000Z"),
+        to: new Date("2026-05-28T00:00:00.000Z"),
+    });
+
+    assert.deepEqual(planned, [
+        {
+            id: "planned:rule-1:2026-05-27T07:00:00.000Z",
+            recurrenceRuleId: "rule-1",
+            title: "Pay invoices",
+            dueAt: new Date("2026-05-27T07:00:00.000Z"),
+            releaseAt: new Date("2026-05-27T06:45:00.000Z"),
+            projectId: null,
+            section: null,
+            priority: 2,
+        },
+    ]);
 });
 
 test("generated task data falls back to inbox when the rule has no project", () => {

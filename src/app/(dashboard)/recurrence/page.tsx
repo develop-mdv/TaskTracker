@@ -41,6 +41,7 @@ export default function RecurrencePage() {
 
     const [showModal, setShowModal] = useState(false);
     const [editRuleId, setEditRuleId] = useState<string | null>(null);
+    const [generateMessage, setGenerateMessage] = useState<string | null>(null);
 
     const updateRule = trpc.recurrence.update.useMutation({
         onSuccess: () => utils.recurrence.list.invalidate(),
@@ -48,6 +49,15 @@ export default function RecurrencePage() {
 
     const deleteRule = trpc.recurrence.delete.useMutation({
         onSuccess: () => utils.recurrence.list.invalidate(),
+    });
+
+    const generateDue = trpc.recurrence.generateDue.useMutation({
+        onSuccess: (result) => {
+            setGenerateMessage(`Создано задач: ${result.created}`);
+            utils.tasks.list.invalidate();
+            utils.recurrence.list.invalidate();
+            utils.recurrence.planned.invalidate();
+        },
     });
 
     return (
@@ -59,7 +69,15 @@ export default function RecurrencePage() {
                         Правила для автоматического создания повторяющихся задач
                     </p>
                 </div>
-                <button
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => generateDue.mutate()}
+                        disabled={generateDue.isPending}
+                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 text-sm font-medium rounded-lg transition"
+                    >
+                        {generateDue.isPending ? "Проверка..." : "Создать ожидающие"}
+                    </button>
+                    <button
                     onClick={() => {
                         setEditRuleId(null);
                         setShowModal(true);
@@ -70,8 +88,15 @@ export default function RecurrencePage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
                     Создать правило
-                </button>
+                    </button>
+                </div>
             </div>
+
+            {generateMessage && (
+                <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
+                    {generateMessage}
+                </div>
+            )}
 
             {isLoading ? (
                 <div className="space-y-3">

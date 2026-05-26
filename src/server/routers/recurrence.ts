@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
+import { generateDueRecurringTasks } from "@/app/api/cron/recurrence/recurrence-generator";
+import { buildPlannedRecurrenceEvents } from "@/app/api/cron/recurrence/recurrence-schedule";
 
 const timeOfDaySchema = z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).nullable();
 
@@ -9,6 +11,74 @@ export const recurrenceRouter = router({
             where: { userId: ctx.userId, active: true },
             orderBy: { createdAt: "desc" },
         });
+    }),
+
+    planned: protectedProcedure
+        .input(
+            z.object({
+                from: z.string().datetime(),
+                to: z.string().datetime(),
+            })
+        )
+        .query(async ({ ctx, input }) => {
+            const from = new Date(input.from);
+            const to = new Date(input.to);
+
+            const rules = await ctx.prisma.recurrenceRule.findMany({
+                where: { userId: ctx.userId, active: true },
+                orderBy: { createdAt: "desc" },
+            });
+            const ruleIds = rules.map((rule) => rule.id);
+            const existingTasks = ruleIds.length > 0
+                ? await ctx.prisma.task.findMany({
+                    where: {
+                        userId: ctx.userId,
+                        recurrenceRuleId: { in: ruleIds },
+                        dueDate: { gte: from, lte: to },
+                    },
+                    select: {
+                        recurrenceRuleId: true,
+                        dueDate: true,
+                    },
+                })
+                : [];
+
+            const planned = buildPlannedRecurrenceEvents({
+                rules,
+                existingTasks,
+                from,
+                to,
+            });
+            const projectIds = Array.from(
+                new Set(planned.map((event) => event.projectId).filter((id): id is string => Boolean(id)))
+            );
+            const projects = projectIds.length > 0
+                ? await ctx.prisma.project.findMany({
+                    where: {
+                        userId: ctx.userId,
+                        id: { in: projectIds },
+                    },
+                    select: {
+                        id: true,
+                        name: true,
+                        color: true,
+                    },
+                })
+                : [];
+            const projectsById = new Map(projects.map((project) => [project.id, project]));
+
+            return planned.map((event) => ({
+                ...event,
+                project: event.projectId ? projectsById.get(event.projectId) ?? null : null,
+            }));
+        }),
+
+    generateDue: protectedProcedure.mutation(async ({ ctx }) => {
+        const result = await generateDueRecurringTasks({
+            prisma: ctx.prisma,
+            userId: ctx.userId,
+        });
+        return result;
     }),
 
     create: protectedProcedure
