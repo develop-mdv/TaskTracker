@@ -13,11 +13,12 @@ const COLORS = [
 ];
 
 interface CreateNoteModalProps {
-    projectId: string;
+    projectId?: string | null;
+    section?: "inbox";
     onClose: () => void;
 }
 
-export function CreateNoteModal({ projectId, onClose }: CreateNoteModalProps) {
+export function CreateNoteModal({ projectId, section, onClose }: CreateNoteModalProps) {
     const [content, setContent] = useState("");
     const [color, setColor] = useState("#FEF08A");
     const [pinned, setPinned] = useState(false);
@@ -61,7 +62,8 @@ export function CreateNoteModal({ projectId, onClose }: CreateNoteModalProps) {
         e.preventDefault();
         if (!content.trim()) return;
         createNote.mutate({
-            projectId,
+            projectId: projectId ?? null,
+            section,
             content: content.trim(),
             color,
             pinned,

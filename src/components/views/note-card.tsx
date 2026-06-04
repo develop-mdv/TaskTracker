@@ -9,21 +9,27 @@ interface NoteCardProps {
         content: string;
         color: string;
         pinned: boolean;
-        createdAt: Date;
+        createdAt: Date | string;
         attachments?: Array<{
             id: string;
             filename: string;
             mimeType: string | null;
             size: number | null;
         }>;
+        project?: {
+            id: string;
+            name: string;
+            color: string;
+        } | null;
     };
     rotation: number;
+    showProjectBadge?: boolean;
     isTrash?: boolean;
     isDragging?: boolean;
     isDragOverlay?: boolean;
     style?: React.CSSProperties;
-    listeners?: Record<string, Function>;
-    attributes?: Record<string, any>;
+    listeners?: React.HTMLAttributes<HTMLDivElement>;
+    attributes?: React.HTMLAttributes<HTMLDivElement>;
 }
 
 const PIN_COLORS: Record<string, string> = {
@@ -45,7 +51,7 @@ const TEXT_COLORS: Record<string, string> = {
 };
 
 export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteCard(
-    { note, rotation, isTrash, isDragging, isDragOverlay, style: externalStyle, listeners, attributes },
+    { note, rotation, showProjectBadge, isTrash, isDragging, isDragOverlay, style: externalStyle, listeners, attributes },
     ref
 ) {
     const [editing, setEditing] = useState(false);
@@ -306,6 +312,15 @@ export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteC
 
             {/* Content */}
             <div className="pt-4" style={{ color: textColor }}>
+                {showProjectBadge && note.project && !isDragOverlay && (
+                    <div className="mb-2 inline-flex max-w-full items-center gap-1.5 rounded-full bg-black/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-normal">
+                        <span
+                            className="h-1.5 w-1.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: note.project.color }}
+                        />
+                        <span className="truncate">{note.project.name}</span>
+                    </div>
+                )}
                 {editing && !isTrash && !isDragOverlay ? (
                     <textarea
                         ref={textareaRef}
