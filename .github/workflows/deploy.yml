@@ -20,6 +20,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
+            set -e
             cd ~/TaskTracker
             git pull
             # Rebuild and restart app container (ensures latest code is used)
@@ -28,5 +29,8 @@ jobs:
             docker compose --profile production up -d --no-deps nginx
             # Ensure nginx stays connected to shared-web network (needed for korpmes.ru proxy)
             docker network connect shared-web tasktracker-nginx-1 2>/dev/null || true
+            # Install and verify cron jobs for recurring tasks and cleanup
+            chmod +x scripts/setup-cron.sh
+            APP_URL=http://localhost:3000 ./scripts/setup-cron.sh
             # Prune unused images to save space
             docker image prune -f
