@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { getBrowserTimeZone } from "@/lib/timezone";
 
 const PRIORITY_LABELS = ["Без приоритета", "Низкий", "Средний", "Высокий", "Срочный"];
 const PRIORITY_COLORS = ["#64748b", "#3b82f6", "#eab308", "#f97316", "#ef4444"];
@@ -26,8 +28,9 @@ export default function StatsPage() {
 
     return (
         <div className="h-full flex flex-col">
-            <div className="px-6 py-4 border-b border-slate-700/50">
+            <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-slate-700/50">
                 <h1 className="text-xl font-bold text-white">Статистика</h1>
+                <UserClock />
             </div>
 
             <div className="flex-1 overflow-auto p-6 space-y-6">
@@ -159,6 +162,65 @@ export default function StatsPage() {
     );
 }
 
+function UserClock() {
+    const [now, setNow] = useState<Date | null>(null);
+    const [timezone] = useState(() => getBrowserTimeZone());
+
+    useEffect(() => {
+        const frameId = window.requestAnimationFrame(() => {
+            setNow(new Date());
+        });
+
+        const intervalId = window.setInterval(() => {
+            setNow(new Date());
+        }, 1000);
+
+        return () => {
+            window.cancelAnimationFrame(frameId);
+            window.clearInterval(intervalId);
+        };
+    }, []);
+
+    const time = now
+        ? now.toLocaleTimeString("ru-RU", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            timeZone: timezone,
+        })
+        : "--:--:--";
+
+    const date = now
+        ? now.toLocaleDateString("ru-RU", {
+            day: "numeric",
+            month: "long",
+            weekday: "short",
+            timeZone: timezone,
+        })
+        : "локальное время";
+
+    return (
+        <div className="flex items-center gap-3 rounded-xl border border-slate-700/40 bg-slate-900/45 px-4 py-2">
+            <div className="hidden h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-300 sm:flex">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div className="text-right leading-tight">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                    Текущее время
+                </p>
+                <p className="font-mono text-lg font-semibold tabular-nums text-white">
+                    {time}
+                </p>
+                <p className="hidden text-[11px] text-slate-500 sm:block">
+                    {date}
+                </p>
+            </div>
+        </div>
+    );
+}
+
 function StatCard({
     label,
     value,
@@ -192,7 +254,13 @@ function StatCard({
     );
 }
 
-function ProjectStatRow({ project }: { project: any }) {
+type ProjectStat = {
+    id: string;
+    name: string;
+    color: string;
+};
+
+function ProjectStatRow({ project }: { project: ProjectStat }) {
     const { data: stats } = trpc.stats.overview.useQuery({ projectId: project.id });
 
     return (
