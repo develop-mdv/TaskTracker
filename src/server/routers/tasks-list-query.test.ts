@@ -64,7 +64,8 @@ test("global deleted task list hides tasks deleted with a project", () => {
 test("active project task list keeps active-or-today-completed behavior", () => {
     const query = buildTaskListQuery({
         userId: "user-1",
-        now: new Date(2026, 4, 19, 12, 0, 0),
+        now: new Date("2026-05-19T09:00:00.000Z"),
+        timezone: "Europe/Moscow",
         input: {
             projectId: "project-1",
         },
@@ -75,7 +76,33 @@ test("active project task list keeps active-or-today-completed behavior", () => 
     assert.equal(query.where.projectId, "project-1");
     assert.deepEqual(query.where.OR, [
         { completedAt: null },
-        { completedAt: { gte: new Date(2026, 4, 19, 0, 0, 0, 0) } },
+        { completedAt: { gte: new Date("2026-05-18T21:00:00.000Z") } },
     ]);
     assert.deepEqual(query.orderBy, { position: "asc" });
+});
+
+test("today task list uses the user's local day boundaries", () => {
+    const query = buildTaskListQuery({
+        userId: "user-1",
+        now: new Date("2026-05-19T09:00:00.000Z"),
+        timezone: "America/New_York",
+        input: {
+            today: true,
+        },
+    });
+
+    assert.deepEqual(query.where.OR, [
+        {
+            dueDate: {
+                gte: new Date("2026-05-19T04:00:00.000Z"),
+                lte: new Date("2026-05-20T03:59:59.999Z"),
+            },
+        },
+        {
+            AND: [
+                { startDate: { lte: new Date("2026-05-20T03:59:59.999Z") } },
+                { endDate: { gte: new Date("2026-05-19T04:00:00.000Z") } },
+            ],
+        },
+    ]);
 });

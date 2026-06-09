@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { getLocalDayRange, DEFAULT_TIMEZONE, normalizeTimeZone } from "@/lib/timezone";
 
 export type TaskListInput = {
     section?: "inbox";
@@ -14,14 +15,17 @@ export function buildTaskListQuery({
     userId,
     input,
     now = new Date(),
+    timezone,
 }: {
     userId: string;
     input: TaskListInput;
     now?: Date;
+    timezone?: string;
 }): {
     where: Prisma.TaskWhereInput;
     orderBy: Prisma.TaskOrderByWithRelationInput | Prisma.TaskOrderByWithRelationInput[];
 } {
+    const userTimezone = normalizeTimeZone(timezone ?? DEFAULT_TIMEZONE);
     const where: Prisma.TaskWhereInput = {
         userId,
     };
@@ -51,20 +55,16 @@ export function buildTaskListQuery({
             ];
         }
     } else if (!input.deleted) {
-        const todayStart = new Date(now);
-        todayStart.setHours(0, 0, 0, 0);
+        const today = getLocalDayRange(now, userTimezone);
 
         where.OR = [
             { completedAt: null },
-            { completedAt: { gte: todayStart } },
+            { completedAt: { gte: today.start } },
         ];
     }
 
     if (input.today) {
-        const start = new Date(now);
-        start.setHours(0, 0, 0, 0);
-        const end = new Date(now);
-        end.setHours(23, 59, 59, 999);
+        const { start, end } = getLocalDayRange(now, userTimezone);
         where.OR = [
             { dueDate: { gte: start, lte: end } },
             {

@@ -1,13 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { TaskView } from "@/components/views/task-view";
 import { NotesBoard } from "@/components/views/notes-board";
 
 type Tab = "tasks" | "notes";
 
 export default function InboxPage() {
-    const [activeTab, setActiveTab] = useState<Tab>("tasks");
+    return (
+        <Suspense fallback={null}>
+            <InboxContent />
+        </Suspense>
+    );
+}
+
+function InboxContent() {
+    const searchParams = useSearchParams();
+    const [activeTab, setActiveTab] = useState<Tab>(
+        searchParams.get("tab") === "notes" ? "notes" : "tasks"
+    );
 
     return (
         <div className="h-screen flex flex-col">

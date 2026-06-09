@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { formatTaskToText, copyToClipboard, downloadAsFile } from "@/lib/export-utils";
+import { LinkifiedText } from "@/components/ui/linkified-text";
+import { getBrowserTimeZone, toDateInputValue } from "@/lib/timezone";
 
 const PRIORITIES = [
     { value: 0, label: "Без приоритета" },
@@ -324,6 +326,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
 
     const isCompleted = !!task.completedAt;
     const completionNote = task.completionNote ?? "";
+    const timezone = getBrowserTimeZone();
 
     return (
         <div
@@ -445,7 +448,9 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                 className="mt-2 text-sm text-slate-300 cursor-text hover:bg-slate-800/30 rounded-lg p-3 transition min-h-[60px] whitespace-pre-wrap max-h-[50vh] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-slate-800/50 [&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-500"
                                 onClick={() => setEditDescription(task.description ?? "")}
                             >
-                                {task.description || (
+                                {task.description ? (
+                                    <LinkifiedText text={task.description} />
+                                ) : (
                                     <span className="text-slate-600">Нажмите, чтобы добавить описание...</span>
                                 )}
                             </div>
@@ -483,7 +488,9 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                     className="mt-2 text-sm text-slate-300 cursor-text hover:bg-green-500/5 rounded-lg p-3 transition min-h-[54px] whitespace-pre-wrap border border-green-500/10 bg-green-500/5"
                                     onClick={() => setEditCompletionNote(completionNote)}
                                 >
-                                    {completionNote || (
+                                    {completionNote ? (
+                                        <LinkifiedText text={completionNote} />
+                                    ) : (
                                         <span className="text-slate-600">Нажмите, чтобы добавить итог выполнения...</span>
                                     )}
                                 </div>
@@ -538,7 +545,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                             </label>
                             <input
                                 type="date"
-                                value={task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : ""}
+                                value={toDateInputValue(task.dueDate, timezone)}
                                 onChange={(e) =>
                                     updateTask.mutate({ id: task.id, dueDate: e.target.value || null })
                                 }
@@ -554,7 +561,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                             </label>
                             <input
                                 type="date"
-                                value={task.startDate ? new Date(task.startDate).toISOString().split("T")[0] : ""}
+                                value={toDateInputValue(task.startDate, timezone)}
                                 onChange={(e) =>
                                     updateTask.mutate({ id: task.id, startDate: e.target.value || null })
                                 }
@@ -568,7 +575,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                             </label>
                             <input
                                 type="date"
-                                value={task.endDate ? new Date(task.endDate).toISOString().split("T")[0] : ""}
+                                value={toDateInputValue(task.endDate, timezone)}
                                 onChange={(e) =>
                                     updateTask.mutate({ id: task.id, endDate: e.target.value || null })
                                 }
@@ -712,10 +719,10 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
 
                     {/* Meta */}
                     <div className="pt-4 border-t border-slate-800 text-xs text-slate-600 space-y-1">
-                        <p>Создано: {new Date(task.createdAt).toLocaleString("ru-RU")}</p>
-                        <p>Обновлено: {new Date(task.updatedAt).toLocaleString("ru-RU")}</p>
+                        <p>Создано: {new Date(task.createdAt).toLocaleString("ru-RU", { timeZone: timezone })}</p>
+                        <p>Обновлено: {new Date(task.updatedAt).toLocaleString("ru-RU", { timeZone: timezone })}</p>
                         {task.completedAt && (
-                            <p>Выполнено: {new Date(task.completedAt).toLocaleString("ru-RU")}</p>
+                            <p>Выполнено: {new Date(task.completedAt).toLocaleString("ru-RU", { timeZone: timezone })}</p>
                         )}
                     </div>
                 </div>

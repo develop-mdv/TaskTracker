@@ -1,6 +1,7 @@
 "use client";
 
-import { use, useState } from "react";
+import { Suspense, use, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import { TaskView } from "@/components/views/task-view";
 import { NotesBoard } from "@/components/views/notes-board";
@@ -8,9 +9,21 @@ import { NotesBoard } from "@/components/views/notes-board";
 type Tab = "tasks" | "notes" | "completed";
 
 export default function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
+    return (
+        <Suspense fallback={null}>
+            <ProjectContent params={params} />
+        </Suspense>
+    );
+}
+
+function ProjectContent({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const { data: project } = trpc.projects.getById.useQuery({ id });
-    const [activeTab, setActiveTab] = useState<Tab>("tasks");
+    const searchParams = useSearchParams();
+    const tabParam = searchParams.get("tab");
+    const [activeTab, setActiveTab] = useState<Tab>(
+        tabParam === "notes" || tabParam === "completed" ? tabParam : "tasks"
+    );
 
     return (
         <div className="h-screen flex flex-col">

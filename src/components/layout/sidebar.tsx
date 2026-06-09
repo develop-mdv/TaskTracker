@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { CreateProjectModal } from "./create-project-modal";
 import { ProjectSettingsModal } from "./project-settings-modal";
 import { useSidebar } from "./sidebar-context";
@@ -193,6 +193,7 @@ export function Sidebar() {
     const [showCreateProject, setShowCreateProject] = useState(false);
     const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
     const [showCompleted, setShowCompleted] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
     const { collapsed, toggle } = useSidebar();
 
     const { data: projects } = trpc.projects.list.useQuery();
@@ -245,6 +246,12 @@ export function Sidebar() {
 
     const activeProject = activeId ? projects?.find((p) => p.id === activeId) : null;
 
+    const handleSearchSubmit = (event: FormEvent) => {
+        event.preventDefault();
+        const query = searchQuery.trim();
+        router.push(query ? `/search?q=${encodeURIComponent(query)}` : "/search");
+    };
+
     return (
         <>
             <aside
@@ -270,6 +277,37 @@ export function Sidebar() {
                             )}
                         </svg>
                     </button>
+                </div>
+
+                <div className="border-b border-slate-700/50 p-3">
+                    {collapsed ? (
+                        <button
+                            onClick={() => router.push("/search")}
+                            className="flex w-full items-center justify-center rounded-lg p-2 text-slate-500 transition hover:bg-slate-800 hover:text-indigo-400"
+                            title="Поиск"
+                        >
+                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-5.2-5.2m1.7-4.3a6 6 0 11-12 0 6 6 0 0112 0z" />
+                            </svg>
+                        </button>
+                    ) : (
+                        <form onSubmit={handleSearchSubmit} className="relative">
+                            <svg
+                                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-5.2-5.2m1.7-4.3a6 6 0 11-12 0 6 6 0 0112 0z" />
+                            </svg>
+                            <input
+                                value={searchQuery}
+                                onChange={(event) => setSearchQuery(event.target.value)}
+                                placeholder="Поиск"
+                                className="w-full rounded-lg border border-slate-800 bg-slate-950/70 py-2 pl-9 pr-3 text-sm text-slate-200 outline-none transition placeholder:text-slate-600 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15"
+                            />
+                        </form>
+                    )}
                 </div>
 
                 {/* Sections */}

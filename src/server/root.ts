@@ -8,8 +8,12 @@ import { statsRouter } from "./routers/stats";
 import { viewPreferencesRouter } from "./routers/viewPreferences";
 import { sectionsRouter } from "./routers/sections";
 import { notesRouter } from "./routers/notes";
+import { usersRouter } from "./routers/users";
+import { searchRouter } from "./routers/search";
 
 export const appRouter = router({
+    users: usersRouter,
+    search: searchRouter,
     projects: projectsRouter,
     tasks: tasksRouter,
     columns: columnsRouter,

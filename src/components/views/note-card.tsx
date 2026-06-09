@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, forwardRef } from "react";
 import { trpc } from "@/lib/trpc";
+import { LinkifiedText } from "@/components/ui/linkified-text";
 
 interface NoteCardProps {
     note: {
@@ -352,7 +353,11 @@ export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteC
                         }}
                         style={{ minHeight: "40px" }}
                     >
-                        {note.content}
+                        <LinkifiedText
+                            text={note.content}
+                            linkClassName="font-bold underline decoration-current/40 underline-offset-2"
+                            linkStyle={{ color: textColor }}
+                        />
                     </p>
                 )}
             </div>

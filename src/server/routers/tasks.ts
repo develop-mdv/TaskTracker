@@ -2,6 +2,7 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { buildTaskListQuery } from "./tasks-list-query";
+import { dateInputToUtc } from "@/lib/timezone";
 
 const taskFilterSchema = z.object({
     section: z.enum(["inbox"]).optional(),
@@ -21,6 +22,7 @@ export const tasksRouter = router({
             const { where, orderBy } = buildTaskListQuery({
                 userId: ctx.userId,
                 input,
+                timezone: ctx.userTimezone,
             });
 
             return ctx.prisma.task.findMany({
@@ -106,9 +108,9 @@ export const tasksRouter = router({
                     projectId: projectId,
                     projectSectionId: input.projectSectionId ?? null,
                     boardColumnId: input.boardColumnId ?? null,
-                    dueDate: input.dueDate ? new Date(input.dueDate) : null,
-                    startDate: input.startDate ? new Date(input.startDate) : null,
-                    endDate: input.endDate ? new Date(input.endDate) : null,
+                    dueDate: input.dueDate ? dateInputToUtc(input.dueDate, ctx.userTimezone) : null,
+                    startDate: input.startDate ? dateInputToUtc(input.startDate, ctx.userTimezone) : null,
+                    endDate: input.endDate ? dateInputToUtc(input.endDate, ctx.userTimezone) : null,
                     position: (maxPos._max.position ?? 0) + 1,
                     userId: ctx.userId,
                 } as any,
@@ -186,13 +188,13 @@ export const tasksRouter = router({
             if (data.boardColumnId !== undefined) updateData.boardColumnId = data.boardColumnId;
 
             if (data.dueDate !== undefined) {
-                updateData.dueDate = data.dueDate ? new Date(data.dueDate) : null;
+                updateData.dueDate = data.dueDate ? dateInputToUtc(data.dueDate, ctx.userTimezone) : null;
             }
             if (data.startDate !== undefined) {
-                updateData.startDate = data.startDate ? new Date(data.startDate) : null;
+                updateData.startDate = data.startDate ? dateInputToUtc(data.startDate, ctx.userTimezone) : null;
             }
             if (data.endDate !== undefined) {
-                updateData.endDate = data.endDate ? new Date(data.endDate) : null;
+                updateData.endDate = data.endDate ? dateInputToUtc(data.endDate, ctx.userTimezone) : null;
             }
 
             return ctx.prisma.task.update({
@@ -279,7 +281,7 @@ export const tasksRouter = router({
 
             if (data.position !== undefined) updateData.position = data.position;
             if (data.dueDate !== undefined) {
-                updateData.dueDate = data.dueDate ? new Date(data.dueDate) : null;
+                updateData.dueDate = data.dueDate ? dateInputToUtc(data.dueDate, ctx.userTimezone) : null;
             }
 
             return ctx.prisma.task.update({
@@ -442,7 +444,7 @@ export const tasksRouter = router({
         .mutation(async ({ ctx, input }) => {
             return ctx.prisma.task.updateMany({
                 where: { id: { in: input.ids }, userId: ctx.userId },
-                data: { dueDate: input.dueDate ? new Date(input.dueDate) : null },
+                data: { dueDate: input.dueDate ? dateInputToUtc(input.dueDate, ctx.userTimezone) : null },
             });
         }),
 

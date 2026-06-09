@@ -2,6 +2,7 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
 import { generateDueRecurringTasks } from "@/app/api/cron/recurrence/recurrence-generator";
 import { buildPlannedRecurrenceEvents } from "@/app/api/cron/recurrence/recurrence-schedule";
+import { normalizeTimeZone } from "@/lib/timezone";
 
 const timeOfDaySchema = z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).nullable();
 
@@ -94,7 +95,7 @@ export const recurrenceRouter = router({
                 tags: z.array(z.string()).optional(),
                 section: z.enum(["inbox"]).nullable().optional(),
                 projectId: z.string().nullable().optional(),
-                timezone: z.string().default("Europe/Amsterdam"),
+                timezone: z.string().optional(),
                 createAheadDays: z.number().int().min(0).max(365).optional(),
                 timeOfDay: timeOfDaySchema.optional(),
             })
@@ -112,7 +113,7 @@ export const recurrenceRouter = router({
                     tags: input.tags ?? [],
                     section: input.projectId ? null : (input.section ?? "inbox"),
                     projectId: input.projectId ?? null,
-                    timezone: input.timezone,
+                    timezone: normalizeTimeZone(input.timezone ?? ctx.userTimezone),
                     createAheadDays: input.createAheadDays ?? 0,
                     timeOfDay: input.timeOfDay ?? null,
                     userId: ctx.userId,
@@ -143,6 +144,9 @@ export const recurrenceRouter = router({
         .mutation(async ({ ctx, input }) => {
             const { id, ...data } = input;
             const updateData: Record<string, unknown> = { ...data };
+            if (data.timezone !== undefined) {
+                updateData.timezone = normalizeTimeZone(data.timezone);
+            }
 
             if (data.projectId !== undefined) {
                 updateData.projectId = data.projectId;
@@ -153,7 +157,7 @@ export const recurrenceRouter = router({
             }
 
             return ctx.prisma.recurrenceRule.update({
-                where: { id },
+                where: { id, userId: ctx.userId },
                 data: updateData,
             });
         }),
@@ -162,7 +166,7 @@ export const recurrenceRouter = router({
         .input(z.object({ id: z.string() }))
         .mutation(async ({ ctx, input }) => {
             return ctx.prisma.recurrenceRule.delete({
-                where: { id: input.id },
+                where: { id: input.id, userId: ctx.userId },
             });
         }),
 });

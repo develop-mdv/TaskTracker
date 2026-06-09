@@ -4,6 +4,8 @@ import { memo, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { CompleteTaskDialog } from "./complete-task-dialog";
 import { copyToClipboard, formatTaskToText } from "@/lib/export-utils";
+import { LinkifiedText } from "@/components/ui/linkified-text";
+import { formatRelativeDate, getBrowserTimeZone, isPastDueDate } from "@/lib/timezone";
 
 interface Task {
     id: string;
@@ -58,24 +60,13 @@ export const TaskCard = memo(function TaskCard({
     const isCompleted = !!task.completedAt;
     const isDeleted = !!task.deletedAt;
     const p = PRIORITIES[task.priority] || PRIORITIES[0];
+    const timezone = getBrowserTimeZone();
 
     const formatDate = (d: string | Date | null | undefined) => {
-        if (!d) return null;
-        const date = new Date(d);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const dateOnly = new Date(date);
-        dateOnly.setHours(0, 0, 0, 0);
-
-        if (dateOnly.getTime() === today.getTime()) return "Сегодня";
-        if (dateOnly.getTime() === tomorrow.getTime()) return "Завтра";
-
-        return date.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+        return formatRelativeDate(d, timezone);
     };
 
-    const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !isCompleted;
+    const isOverdue = task.dueDate && isPastDueDate(task.dueDate, timezone) && !isCompleted;
 
     return (
         <div
@@ -149,7 +140,7 @@ export const TaskCard = memo(function TaskCard({
 
                     {task.description && (
                         <p className="text-xs text-slate-500 mt-1 line-clamp-2">
-                            {task.description}
+                            <LinkifiedText text={task.description} />
                         </p>
                     )}
 
@@ -159,7 +150,7 @@ export const TaskCard = memo(function TaskCard({
                                 Итог
                             </div>
                             <p className="mt-1 text-xs text-slate-300 whitespace-pre-wrap line-clamp-3">
-                                {task.completionNote}
+                                <LinkifiedText text={task.completionNote} />
                             </p>
                         </div>
                     )}
