@@ -117,11 +117,11 @@ export function RecurrenceModal({ onClose, editRuleId }: RecurrenceModalProps) {
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center sm:p-4"
             onClick={onClose}
         >
             <div
-                className="bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]"
+                className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-900 shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
@@ -135,7 +135,7 @@ export function RecurrenceModal({ onClose, editRuleId }: RecurrenceModalProps) {
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-5 overflow-y-auto p-4 sm:p-6">
                     {/* Title */}
                     <div>
                         <label className="block text-sm font-medium text-slate-300 mb-1.5">Название задачи</label>
@@ -164,7 +164,7 @@ export function RecurrenceModal({ onClose, editRuleId }: RecurrenceModalProps) {
                     {/* Frequency */}
                     <div>
                         <label className="block text-sm font-medium text-slate-300 mb-1.5">Частота повторения</label>
-                        <div className="grid grid-cols-4 gap-2">
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                             {FREQUENCIES.map(f => (
                                 <button
                                     key={f.value}
@@ -260,7 +260,7 @@ export function RecurrenceModal({ onClose, editRuleId }: RecurrenceModalProps) {
                     )}
 
                     {/* Release timing */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
                             <label className="block text-sm font-medium text-slate-300 mb-1.5">Создавать за N дней</label>
                             <input
@@ -285,7 +285,7 @@ export function RecurrenceModal({ onClose, editRuleId }: RecurrenceModalProps) {
                     </div>
 
                     {/* Priority & Project */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
                             <label className="block text-sm font-medium text-slate-300 mb-1.5">Приоритет</label>
                             <select
@@ -314,7 +314,7 @@ export function RecurrenceModal({ onClose, editRuleId }: RecurrenceModalProps) {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex gap-3 justify-end pt-2">
+                    <div className="flex gap-3 pt-2 sm:justify-end">
                         <button
                             type="button"
                             onClick={onClose}

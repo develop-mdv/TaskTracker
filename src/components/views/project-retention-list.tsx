@@ -48,7 +48,7 @@ function ProjectRow({
 
     return (
         <div className="group rounded-lg border border-slate-700/40 bg-slate-800/45 px-4 py-3 transition hover:border-slate-600/70">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-3">
                         <span
@@ -75,11 +75,11 @@ function ProjectRow({
                     )}
                 </div>
 
-                <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
+                <div className="flex flex-shrink-0 flex-wrap items-center gap-2 opacity-100 transition sm:justify-end sm:opacity-0 sm:group-hover:opacity-100">
                     <button
                         onClick={onPrimary}
                         disabled={primaryPending}
-                        className="rounded-lg bg-indigo-500/10 px-3 py-1.5 text-xs font-medium text-indigo-300 transition hover:bg-indigo-500/20 disabled:opacity-50"
+                        className="min-h-9 flex-1 rounded-lg bg-indigo-500/10 px-3 py-1.5 text-xs font-medium text-indigo-300 transition hover:bg-indigo-500/20 disabled:opacity-50 sm:flex-none"
                     >
                         {mode === "archive" ? "Вернуть" : "Восстановить"}
                     </button>
@@ -88,14 +88,14 @@ function ProjectRow({
                             <button
                                 onClick={onSecondary}
                                 disabled={secondaryPending}
-                                className="rounded-lg bg-slate-700/70 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-700 disabled:opacity-50"
+                                className="min-h-9 flex-1 rounded-lg bg-slate-700/70 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-700 disabled:opacity-50 sm:flex-none"
                             >
                                 Открыть
                             </button>
                             <button
                                 onClick={onDelete}
                                 disabled={deletePending}
-                                className="rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+                                className="min-h-9 flex-1 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-300 transition hover:bg-red-500/20 disabled:opacity-50 sm:flex-none"
                             >
                                 Удалить
                             </button>
@@ -104,7 +104,7 @@ function ProjectRow({
                         <button
                             onClick={onSecondary}
                             disabled={secondaryPending}
-                            className="rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+                            className="min-h-9 flex-1 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-300 transition hover:bg-red-500/20 disabled:opacity-50 sm:flex-none"
                         >
                             Удалить навсегда
                         </button>

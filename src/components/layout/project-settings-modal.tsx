@@ -100,9 +100,9 @@ export function ProjectSettingsModal({ projectId, onClose }: ProjectSettingsModa
     const isCompleted = !!(project as any)?.completedAt;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center sm:p-4">
             <div
-                className="bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]"
+                className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-900 shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -138,7 +138,7 @@ export function ProjectSettingsModal({ projectId, onClose }: ProjectSettingsModa
                 </div>
 
                 {/* Content */}
-                <div className="p-6 overflow-y-auto">
+                <div className="overflow-y-auto p-4 sm:p-6">
                     {activeTab === "general" ? (
                         <div className="space-y-6">
                             {isCompleted && (

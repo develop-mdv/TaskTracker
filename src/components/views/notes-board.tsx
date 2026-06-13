@@ -237,7 +237,7 @@ export function NotesBoard({ projectId, section, title = "Доска замет�
 
     const renderNotesGrid = (items: Note[], gapClass: string) => {
         const grid = (
-            <div className={`grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 ${gapClass}`}>
+            <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 ${gapClass}`}>
                 {items.map((note) => (
                     canReorder ? (
                         <SortableNoteItem
@@ -266,7 +266,7 @@ export function NotesBoard({ projectId, section, title = "Доска замет�
     };
 
     const boardContent = (
-        <div className="flex gap-6 h-full">
+        <div className="flex h-full flex-col gap-4 md:flex-row md:gap-6">
             <div className="flex-1 min-w-0">
                 <Zone id="zone-pinned">
                     {pinnedNotes.length > 0 ? (
@@ -275,12 +275,12 @@ export function NotesBoard({ projectId, section, title = "Доска замет�
                                 <span className="text-sm font-semibold text-slate-400">На доске</span>
                                 <span className="text-xs text-slate-600">{pinnedNotes.length}</span>
                             </div>
-                            <div className="cork-board rounded-2xl p-6">
+                            <div className="cork-board rounded-2xl p-4 sm:p-6">
                                 {renderNotesGrid(pinnedNotes, "gap-5")}
                             </div>
                         </>
                     ) : stackNotes.length > 0 ? (
-                        <div className="cork-board rounded-2xl p-10 flex flex-col items-center justify-center text-center min-h-[200px]">
+                        <div className="cork-board flex min-h-[200px] flex-col items-center justify-center rounded-2xl p-6 text-center sm:p-10">
                             <span className="text-4xl mb-3">📌</span>
                             <p className="text-slate-500 text-sm">
                                 Доска пуста. Перетащите заметки из стопки.
@@ -304,7 +304,7 @@ export function NotesBoard({ projectId, section, title = "Доска замет�
                 </Zone>
             </div>
 
-            <div className="w-16 flex flex-col items-center justify-end pb-4 shrink-0">
+            <div className="flex shrink-0 justify-end pb-1 md:w-16 md:flex-col md:items-center md:pb-4">
                 <button
                     onClick={() => setShowTrash(!showTrash)}
                     className={`
@@ -331,20 +331,20 @@ export function NotesBoard({ projectId, section, title = "Доска замет�
 
     return (
         <div className="h-full flex flex-col">
-            <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-slate-700/50">
-                <div className="flex items-center gap-3">
+            <div className="flex flex-col items-stretch justify-between gap-3 border-b border-slate-700/50 px-4 py-3 sm:flex-row sm:items-center sm:px-6 sm:py-4">
+                <div className="flex min-w-0 items-center gap-3">
                     <h2 className="text-lg font-bold text-white">{title}</h2>
                     <span className="text-xs text-slate-500 bg-slate-800 rounded-full px-2 py-0.5">
                         {visibleNotes.length}
                     </span>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                     {isInbox && (
-                        <div className="flex bg-slate-800 rounded-lg p-0.5">
+                        <div className="grid flex-1 grid-cols-2 rounded-lg bg-slate-800 p-0.5 sm:flex sm:flex-none">
                             <button
                                 onClick={() => setShowProjectNotes(false)}
-                                className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${!showProjectNotes
+                                className={`rounded-md px-3 py-2 text-xs font-medium transition sm:py-1.5 ${!showProjectNotes
                                     ? "bg-amber-500 text-slate-900"
                                     : "text-slate-400 hover:text-white"
                                 }`}
@@ -353,7 +353,7 @@ export function NotesBoard({ projectId, section, title = "Доска замет�
                             </button>
                             <button
                                 onClick={() => setShowProjectNotes(true)}
-                                className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${showProjectNotes
+                                className={`rounded-md px-3 py-2 text-xs font-medium transition sm:py-1.5 ${showProjectNotes
                                     ? "bg-amber-500 text-slate-900"
                                     : "text-slate-400 hover:text-white"
                                 }`}
@@ -365,7 +365,7 @@ export function NotesBoard({ projectId, section, title = "Доска замет�
 
                     <button
                         onClick={() => setShowCreate(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-900 text-sm rounded-lg font-semibold transition shadow-lg shadow-amber-500/20"
+                        className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-amber-500 px-3 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-amber-500/20 transition hover:bg-amber-600 sm:min-h-0 sm:py-1.5"
                     >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -375,7 +375,7 @@ export function NotesBoard({ projectId, section, title = "Доска замет�
                 </div>
             </div>
 
-            <div className="flex-1 overflow-auto p-6">
+            <div className="flex-1 overflow-auto p-4 sm:p-6">
                 {isLoading ? (
                     <div className="flex items-center justify-center py-12">
                         <div className="animate-spin h-8 w-8 border-2 border-amber-500 border-t-transparent rounded-full" />
@@ -427,7 +427,7 @@ export function NotesBoard({ projectId, section, title = "Доска замет�
                             <span className="text-sm font-semibold text-red-400">Корзина</span>
                             <span className="text-xs text-slate-600">{visibleTrashedNotes.length}</span>
                         </div>
-                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 opacity-60">
+                        <div className="grid grid-cols-1 gap-4 opacity-60 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {visibleTrashedNotes.map((note) => (
                                 <NoteCard
                                     key={note.id}

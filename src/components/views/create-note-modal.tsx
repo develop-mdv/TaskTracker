@@ -71,7 +71,7 @@ export function CreateNoteModal({ projectId, section, onClose }: CreateNoteModal
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-4">
             {/* Backdrop */}
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
@@ -82,7 +82,7 @@ export function CreateNoteModal({ projectId, section, onClose }: CreateNoteModal
             >
                 {/* Preview sticky note */}
                 <div
-                    className="rounded-lg p-6 shadow-2xl mx-4"
+                    className="mx-0 rounded-lg p-4 shadow-2xl sm:p-6"
                     style={{
                         backgroundColor: color,
                         transform: "rotate(-1deg)",
@@ -106,15 +106,15 @@ export function CreateNoteModal({ projectId, section, onClose }: CreateNoteModal
                         />
 
                         {/* Color picker */}
-                        <div className="mt-4 flex items-center gap-3">
+                        <div className="mt-4 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
                             <span className="text-xs font-semibold" style={{ color: "#1E293B" }}>Цвет:</span>
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                                 {COLORS.map((c) => (
                                     <button
                                         key={c.value}
                                         type="button"
                                         onClick={() => setColor(c.value)}
-                                        className={`w-7 h-7 rounded-full border-2 transition-all hover:scale-110 ${color === c.value
+                                        className={`h-9 w-9 rounded-full border-2 transition-all hover:scale-110 sm:h-7 sm:w-7 ${color === c.value
                                             ? "border-slate-800 scale-110 shadow-lg"
                                             : "border-white/50"
                                             }`}
@@ -139,11 +139,11 @@ export function CreateNoteModal({ projectId, section, onClose }: CreateNoteModal
                         </label>
 
                         {/* Actions */}
-                        <div className="mt-5 flex gap-2 justify-end">
+                        <div className="mt-5 flex gap-2 sm:justify-end">
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="px-4 py-2 text-sm font-medium rounded-lg bg-black/10 hover:bg-black/20 transition"
+                                className="min-h-10 flex-1 rounded-lg bg-black/10 px-4 py-2 text-sm font-medium transition hover:bg-black/20 sm:flex-none"
                                 style={{ color: "#1E293B" }}
                             >
                                 Отмена
@@ -151,7 +151,7 @@ export function CreateNoteModal({ projectId, section, onClose }: CreateNoteModal
                             <button
                                 type="submit"
                                 disabled={!content.trim() || createNote.isPending}
-                                className="px-4 py-2 text-sm font-medium rounded-lg bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg"
+                                className="min-h-10 flex-1 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-lg transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
                             >
                                 {createNote.isPending ? "Создаю..." : "Создать"}
                             </button>

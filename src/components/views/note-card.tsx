@@ -208,7 +208,7 @@ export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteC
                         setShowMenu(!showMenu);
                     }}
                     onPointerDown={(e) => e.stopPropagation()}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 flex items-center justify-center rounded-full hover:bg-black/10"
+                    className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full opacity-100 transition-opacity hover:bg-black/10 sm:h-6 sm:w-6 sm:opacity-0 sm:group-hover:opacity-100"
                     style={{ color: textColor }}
                 >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -232,7 +232,7 @@ export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteC
                                 <button
                                     key={c}
                                     onClick={() => handleColorChange(c)}
-                                    className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${note.color === c ? "border-white shadow-lg scale-110" : "border-transparent"
+                                    className={`h-8 w-8 rounded-full border-2 transition-transform hover:scale-110 sm:h-6 sm:w-6 ${note.color === c ? "border-white shadow-lg scale-110" : "border-transparent"
                                         }`}
                                     style={{ backgroundColor: c }}
                                 />
@@ -398,7 +398,7 @@ export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteC
                                             e.stopPropagation();
                                             deleteAttachment.mutate({ id: att.id });
                                         }}
-                                        className="opacity-0 group-hover:opacity-100 absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow-sm transition-all"
+                                        className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-[10px] text-white opacity-100 shadow-sm transition-all hover:bg-red-600 sm:h-5 sm:w-5 sm:opacity-0 sm:group-hover:opacity-100"
                                         title="Удалить файл"
                                     >
                                         ✕

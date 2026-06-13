@@ -90,13 +90,13 @@ export function TaskView({
         <div className="h-full flex flex-col">
             {/* Header */}
             {!hideHeader && (
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50">
-                <div className="flex items-center gap-3">
-                    <h1 className="text-xl font-bold text-white">{title}</h1>
+            <div className="flex flex-col items-stretch justify-between gap-3 border-b border-slate-700/50 px-4 py-3 sm:flex-row sm:items-center sm:px-6 sm:py-4">
+                <div className="flex min-w-0 items-center gap-3">
+                    <h1 className="min-w-0 truncate text-lg font-bold text-white sm:text-xl">{title}</h1>
                     {projectId && !archived && !deleted && (
                         <button
                             onClick={() => setShowManageSections(true)}
-                            className="p-1.5 text-slate-500 hover:text-indigo-400 hover:bg-slate-800 rounded-lg transition"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-800 hover:text-indigo-400"
                             title="Управление секциями"
                         >
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -106,12 +106,12 @@ export function TaskView({
                     )}
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                     {showViewToggle && !archived && !deleted && (
-                        <div className="flex bg-slate-800 rounded-lg p-0.5">
+                        <div className="grid flex-1 grid-cols-2 rounded-lg bg-slate-800 p-0.5 sm:flex sm:flex-none">
                             <button
                                 onClick={() => handleToggle("list")}
-                                className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${viewMode === "list"
+                                className={`rounded-md px-3 py-2 text-xs font-medium transition sm:py-1.5 ${viewMode === "list"
                                     ? "bg-indigo-600 text-white"
                                     : "text-slate-400 hover:text-white"
                                     }`}
@@ -120,7 +120,7 @@ export function TaskView({
                             </button>
                             <button
                                 onClick={() => handleToggle("kanban")}
-                                className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${viewMode === "kanban"
+                                className={`rounded-md px-3 py-2 text-xs font-medium transition sm:py-1.5 ${viewMode === "kanban"
                                     ? "bg-indigo-600 text-white"
                                     : "text-slate-400 hover:text-white"
                                     }`}
@@ -133,7 +133,7 @@ export function TaskView({
                     {!archived && !deleted && (
                         <button
                             onClick={() => setShowCreate(true)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg font-medium transition"
+                            className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 sm:min-h-0 sm:py-1.5"
                         >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -146,7 +146,7 @@ export function TaskView({
             )}
 
             {/* Content */}
-            <div className="flex-1 overflow-auto p-6">
+            <div className="flex-1 overflow-auto p-4 sm:p-6">
                 {tasksLoading ? (
                     <div className="flex items-center justify-center py-12">
                         <div className="animate-spin h-8 w-8 border-2 border-indigo-500 border-t-transparent rounded-full" />

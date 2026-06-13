@@ -97,6 +97,19 @@ const SECTIONS = [
     },
 ];
 
+const SEARCH_SECTION = {
+    id: "search",
+    label: "Поиск",
+    href: "/search",
+    icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-5.2-5.2m1.7-4.3a6 6 0 11-12 0 6 6 0 0112 0z" />
+        </svg>
+    ),
+};
+
+const MOBILE_NAV = [SECTIONS[0], SECTIONS[1], SEARCH_SECTION, SECTIONS[2]];
+
 // Sortable project item
 function SortableProjectItem({
     project,
@@ -162,7 +175,7 @@ function SortableProjectItem({
                     <>
                         <span className="truncate flex-1 text-left">{project.name}</span>
                         <span className="text-xs text-slate-600">
-                            {(project as any)._count?.tasks ?? 0}
+                            {project._count?.tasks ?? 0}
                         </span>
                     </>
                 )}
@@ -193,6 +206,7 @@ export function Sidebar() {
     const [showCreateProject, setShowCreateProject] = useState(false);
     const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
     const [showCompleted, setShowCompleted] = useState(false);
+    const [mobileOpen, setMobileOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const { collapsed, toggle } = useSidebar();
 
@@ -246,16 +260,21 @@ export function Sidebar() {
 
     const activeProject = activeId ? projects?.find((p) => p.id === activeId) : null;
 
+    const navigate = (href: string) => {
+        router.push(href);
+        setMobileOpen(false);
+    };
+
     const handleSearchSubmit = (event: FormEvent) => {
         event.preventDefault();
         const query = searchQuery.trim();
-        router.push(query ? `/search?q=${encodeURIComponent(query)}` : "/search");
+        navigate(query ? `/search?q=${encodeURIComponent(query)}` : "/search");
     };
 
     return (
         <>
             <aside
-                className={`fixed left-0 top-0 h-full bg-slate-900 border-r border-slate-700/50 flex flex-col transition-all duration-300 z-40 ${collapsed ? "w-16" : "w-64"
+                className={`fixed left-0 top-0 z-40 hidden h-full flex-col border-r border-slate-700/50 bg-slate-900 transition-all duration-300 md:flex ${collapsed ? "w-16" : "w-64"
                     }`}
             >
                 {/* Header */}
@@ -318,7 +337,7 @@ export function Sidebar() {
                             return (
                                 <button
                                     key={section.id}
-                                    onClick={() => router.push(section.href)}
+                                    onClick={() => navigate(section.href)}
                                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
                                         ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/20"
                                         : "text-slate-400 hover:text-white hover:bg-slate-800"
@@ -368,7 +387,7 @@ export function Sidebar() {
                                                 project={project}
                                                 isActive={pathname === `/project/${project.id}`}
                                                 collapsed={collapsed}
-                                                onNavigate={() => router.push(`/project/${project.id}`)}
+                                                onNavigate={() => navigate(`/project/${project.id}`)}
                                                 onSettings={() => setEditingProjectId(project.id)}
                                             />
                                         ))}
@@ -435,7 +454,7 @@ export function Sidebar() {
                                                         }`}
                                                 >
                                                     <button
-                                                        onClick={() => router.push(`/project/${project.id}`)}
+                                                        onClick={() => navigate(`/project/${project.id}`)}
                                                         className="flex-1 flex items-center gap-3 px-3 py-2 text-sm"
                                                     >
                                                         <div className="relative">
@@ -484,6 +503,253 @@ export function Sidebar() {
                     </button>
                 </div>
             </aside>
+
+            <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-slate-800/80 bg-slate-950/95 px-3 backdrop-blur md:hidden">
+                <button
+                    onClick={() => navigate("/inbox")}
+                    className="flex min-w-0 items-center gap-2 rounded-xl px-2 py-1.5 text-left transition active:bg-slate-900"
+                >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-indigo-400/20 bg-indigo-500/15 text-sm font-bold text-indigo-200">
+                        T
+                    </span>
+                    <span className="min-w-0">
+                        <span className="block truncate text-sm font-bold leading-4 text-white">TaskTracker</span>
+                        <span className="block truncate text-[11px] leading-4 text-slate-500">задачи и заметки</span>
+                    </span>
+                </button>
+
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={() => navigate("/search")}
+                        className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-900 hover:text-indigo-300 active:bg-slate-800"
+                        aria-label="Открыть поиск"
+                    >
+                        {SEARCH_SECTION.icon}
+                    </button>
+                    <button
+                        onClick={() => setMobileOpen(true)}
+                        className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-300 transition hover:bg-slate-900 hover:text-white active:bg-slate-800"
+                        aria-label="Открыть меню"
+                    >
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-800/90 bg-slate-950/95 px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 backdrop-blur md:hidden">
+                <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
+                    {MOBILE_NAV.map((section) => {
+                        const isActive = pathname === section.href || pathname?.startsWith(section.href + "/");
+                        return (
+                            <button
+                                key={section.id}
+                                onClick={() => navigate(section.href)}
+                                className={`flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[10px] font-semibold transition ${isActive
+                                    ? "bg-indigo-500/15 text-indigo-300"
+                                    : "text-slate-500 hover:bg-slate-900 hover:text-slate-200"
+                                    }`}
+                            >
+                                {section.icon}
+                                <span className="max-w-full truncate">{section.label}</span>
+                            </button>
+                        );
+                    })}
+
+                    <button
+                        onClick={() => setMobileOpen(true)}
+                        className={`flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[10px] font-semibold transition ${mobileOpen
+                            ? "bg-indigo-500/15 text-indigo-300"
+                            : "text-slate-500 hover:bg-slate-900 hover:text-slate-200"
+                            }`}
+                    >
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 7h16M4 12h16M4 17h16" />
+                        </svg>
+                        <span>Ещё</span>
+                    </button>
+                </div>
+            </nav>
+
+            {mobileOpen && (
+                <div className="fixed inset-0 z-50 bg-black/55 backdrop-blur-sm md:hidden" onClick={() => setMobileOpen(false)}>
+                    <div
+                        className="flex h-full w-[min(88vw,22rem)] flex-col border-r border-slate-700/60 bg-slate-900 shadow-2xl shadow-black/50"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between border-b border-slate-700/50 px-4 py-3">
+                            <div>
+                                <div className="text-base font-bold text-white">Меню</div>
+                                <div className="text-xs text-slate-500">Разделы и проекты</div>
+                            </div>
+                            <button
+                                onClick={() => setMobileOpen(false)}
+                                className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-800 hover:text-white"
+                                aria-label="Закрыть меню"
+                            >
+                                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className="border-b border-slate-700/50 p-3">
+                            <form onSubmit={handleSearchSubmit} className="relative">
+                                <svg
+                                    className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-5.2-5.2m1.7-4.3a6 6 0 11-12 0 6 6 0 0112 0z" />
+                                </svg>
+                                <input
+                                    value={searchQuery}
+                                    onChange={(event) => setSearchQuery(event.target.value)}
+                                    placeholder="Поиск"
+                                    className="w-full rounded-xl border border-slate-800 bg-slate-950/70 py-3 pl-9 pr-3 text-base text-slate-200 outline-none transition placeholder:text-slate-600 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15"
+                                />
+                            </form>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto px-3 py-4">
+                            <div className="space-y-1">
+                                {[...SECTIONS, SEARCH_SECTION].map((section) => {
+                                    const isActive = pathname === section.href || pathname?.startsWith(section.href + "/");
+                                    return (
+                                        <button
+                                            key={section.id}
+                                            onClick={() => navigate(section.href)}
+                                            className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium transition ${isActive
+                                                ? "border border-indigo-500/20 bg-indigo-600/20 text-indigo-300"
+                                                : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                                                }`}
+                                        >
+                                            {section.icon}
+                                            <span>{section.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="mt-6">
+                                <div className="mb-2 flex items-center justify-between px-3">
+                                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                        Проекты
+                                    </span>
+                                    <button
+                                        onClick={() => {
+                                            setMobileOpen(false);
+                                            setShowCreateProject(true);
+                                        }}
+                                        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-800 hover:text-indigo-300"
+                                        aria-label="Создать проект"
+                                    >
+                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                <div className="space-y-1">
+                                    {projects?.map((project) => {
+                                        const isActive = pathname === `/project/${project.id}`;
+                                        return (
+                                            <div
+                                                key={project.id}
+                                                className={`flex min-h-11 items-center rounded-xl transition ${isActive
+                                                    ? "bg-slate-800 text-white"
+                                                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                                                    }`}
+                                            >
+                                                <button
+                                                    onClick={() => navigate(`/project/${project.id}`)}
+                                                    className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2 text-sm"
+                                                >
+                                                    <span
+                                                        className="h-3 w-3 flex-shrink-0 rounded-sm"
+                                                        style={{ backgroundColor: project.color }}
+                                                    />
+                                                    <span className="min-w-0 flex-1 truncate text-left">{project.name}</span>
+                                                    <span className="text-xs text-slate-600">
+                                                        {project._count?.tasks ?? 0}
+                                                    </span>
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setMobileOpen(false);
+                                                        setEditingProjectId(project.id);
+                                                    }}
+                                                    className="mr-1 flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-700 hover:text-indigo-300"
+                                                    aria-label={`Настройки проекта ${project.name}`}
+                                                >
+                                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {completedProjects && completedProjects.length > 0 && (
+                                    <div className="mt-4">
+                                        <button
+                                            onClick={() => setShowCompleted(!showCompleted)}
+                                            className="flex min-h-10 w-full items-center gap-2 rounded-xl px-3 text-xs font-semibold uppercase tracking-wider text-slate-600 transition hover:bg-slate-800 hover:text-slate-400"
+                                        >
+                                            <svg
+                                                className={`h-3 w-3 transition-transform ${showCompleted ? "rotate-90" : ""}`}
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                            </svg>
+                                            Завершённые ({completedProjects.length})
+                                        </button>
+
+                                        {showCompleted && (
+                                            <div className="mt-1 space-y-1">
+                                                {completedProjects.map((project) => (
+                                                    <button
+                                                        key={project.id}
+                                                        onClick={() => navigate(`/project/${project.id}`)}
+                                                        className="flex min-h-10 w-full items-center gap-3 rounded-xl px-3 text-sm text-slate-500 opacity-75 transition hover:bg-slate-800 hover:text-slate-300"
+                                                    >
+                                                        <span className="relative">
+                                                            <span
+                                                                className="block h-3 w-3 rounded-sm"
+                                                                style={{ backgroundColor: project.color }}
+                                                            />
+                                                            <span className="absolute -right-1 -top-1 text-[8px] text-green-400">✓</span>
+                                                        </span>
+                                                        <span className="min-w-0 flex-1 truncate text-left line-through">{project.name}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="border-t border-slate-700/50 p-3">
+                            <button
+                                onClick={() => signOut({ callbackUrl: "/login" })}
+                                className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm text-slate-400 transition hover:bg-slate-800 hover:text-red-300"
+                            >
+                                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                </svg>
+                                Выйти
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {showCreateProject && (
                 <CreateProjectModal onClose={() => setShowCreateProject(false)} />

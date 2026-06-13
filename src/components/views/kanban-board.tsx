@@ -249,7 +249,7 @@ const KanbanCell = memo(function KanbanCell({
     return (
         <div
             ref={setNodeRef}
-            className={`flex-shrink-0 w-80 flex flex-col rounded-xl bg-slate-900/40 border ${isActiveDropTarget ? "border-indigo-500/50 bg-indigo-500/10" : "border-slate-800/50"
+            className={`flex w-[82vw] max-w-[20rem] flex-shrink-0 flex-col rounded-xl border bg-slate-900/40 sm:w-80 ${isActiveDropTarget ? "border-indigo-500/50 bg-indigo-500/10" : "border-slate-800/50"
                 } transition-colors min-h-[150px]`}
         >
             {/* If we aren't using a global header, we might want per-cell headers? 
@@ -376,7 +376,7 @@ const SortableColumnHeader = memo(function SortableColumnHeader({
     };
 
     return (
-        <div ref={setNodeRef} style={style} className="w-80 flex-shrink-0">
+        <div ref={setNodeRef} style={style} className="w-[82vw] max-w-[20rem] flex-shrink-0 sm:w-80">
             <div className="bg-slate-900/50 rounded-xl overflow-hidden">
                 <ColumnHeader
                     title={col.name}
@@ -659,7 +659,7 @@ export function KanbanBoard({
 
         // Shared "Add Column" UI
         const AddColumnUI = () => (
-            <div className="flex-shrink-0 w-80">
+            <div className="w-[82vw] max-w-[20rem] flex-shrink-0 sm:w-80">
                 {newColumnName !== "" ? (
                     <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-700/50">
                         <input
@@ -699,7 +699,7 @@ export function KanbanBoard({
         if (!hasSections && !hasUncategorized) {
             // Fallback/Legacy View (Single Row / Simple View)
             return (
-                <div className="flex gap-4 h-full pb-4 items-start">
+                <div className="flex h-full items-start gap-3 overflow-x-auto pb-4 sm:gap-4">
                     <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
                         {columns.map(col => {
                             // We need to use a specialized component to hook into useSortable 
@@ -729,9 +729,9 @@ export function KanbanBoard({
 
         // Matrix View (With Sections)
         return (
-            <div className="flex-1 overflow-x-auto overflow-y-auto pl-4">
+            <div className="flex-1 overflow-x-auto overflow-y-auto pl-1 sm:pl-4">
                 {/* Sticky Header Row for Columns */}
-                <div className="sticky top-0 z-20 flex gap-4 pl-6 pb-2 pt-2 bg-slate-950/80 backdrop-blur-md border-b border-slate-800 min-w-max items-start">
+                <div className="sticky top-0 z-20 flex min-w-max items-start gap-3 border-b border-slate-800 bg-slate-950/80 pb-2 pl-3 pt-2 backdrop-blur-md sm:gap-4 sm:pl-6">
                     <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
                         {columns.map(col => (
                             <SortableColumnHeader
@@ -762,7 +762,7 @@ export function KanbanBoard({
                         </div>
 
                         {/* Columns Grid */}
-                        <div className="flex gap-4 pl-6 min-w-max">
+                        <div className="flex min-w-max gap-3 pl-3 sm:gap-4 sm:pl-6">
                             {columns.map(col => (
                                 <KanbanCell
                                     key={`${sect.id}:${col.id}`}
@@ -786,7 +786,7 @@ export function KanbanBoard({
                                 />
                             ))}
                             {/* Spacer to match Add Column button width if needed, or just let it flow */}
-                            <div className="w-80 flex-shrink-0" />
+                            <div className="w-[82vw] max-w-[20rem] flex-shrink-0 sm:w-80" />
                         </div>
                     </div>
                 ))}
@@ -812,7 +812,7 @@ export function KanbanBoard({
         return (
             <div ref={setNodeRef} style={style} className="flex flex-col gap-2 h-full">
                 <SortableContext items={tasks.map((t: any) => t.id)} strategy={verticalListSortingStrategy}>
-                    <div className="w-80 bg-slate-900/50 rounded-xl flex flex-col max-h-full border border-slate-800/50">
+                    <div className="flex max-h-full w-[82vw] max-w-[20rem] flex-col rounded-xl border border-slate-800/50 bg-slate-900/50 sm:w-80">
                         <ColumnHeader
                             title={col.name}
                             color={col.color}
@@ -913,9 +913,9 @@ export function KanbanBoard({
 
             <DragOverlay dropAnimation={defaultDropAnimation}>
                 {activeType === "task" && activeId ? (
-                    <div className="w-72"><TaskCard task={tasks.find(t => t.id === activeId)!} isDragging /></div>
+                    <div className="w-[78vw] max-w-[18rem]"><TaskCard task={tasks.find(t => t.id === activeId)!} isDragging /></div>
                 ) : activeType === "column" && activeId ? (
-                    <div className="w-80 opacity-80">
+                    <div className="w-[82vw] max-w-[20rem] opacity-80 sm:w-80">
                         <div className="bg-slate-800/90 rounded-xl border-2 border-indigo-500/50 shadow-xl shadow-indigo-500/20 p-3">
                             <div className="flex items-center gap-2">
                                 <div className="w-2.5 h-2.5 rounded-full bg-indigo-400" />

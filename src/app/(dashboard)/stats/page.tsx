@@ -28,14 +28,14 @@ export default function StatsPage() {
 
     return (
         <div className="h-full flex flex-col">
-            <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-slate-700/50">
+            <div className="flex flex-col items-stretch justify-between gap-3 border-b border-slate-700/50 px-4 py-3 sm:flex-row sm:items-center sm:px-6 sm:py-4">
                 <h1 className="text-xl font-bold text-white">Статистика</h1>
                 <UserClock />
             </div>
 
-            <div className="flex-1 overflow-auto p-6 space-y-6">
+            <div className="flex-1 overflow-auto space-y-5 p-4 sm:space-y-6 sm:p-6">
                 {/* Summary cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 sm:gap-4">
                     <StatCard label="Открытых задач" value={stats.totalOpen} color="indigo" />
                     <StatCard label="Выполнено всего" value={stats.totalCompleted} color="green" />
                     <StatCard
@@ -50,7 +50,7 @@ export default function StatsPage() {
                     />
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 sm:gap-4">
                     <StatCard
                         label="Создано за месяц"
                         value={stats.createdThisMonth}
@@ -200,7 +200,7 @@ function UserClock() {
         : "локальное время";
 
     return (
-        <div className="flex items-center gap-3 rounded-xl border border-slate-700/40 bg-slate-900/45 px-4 py-2">
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-700/40 bg-slate-900/45 px-4 py-2 sm:justify-start">
             <div className="hidden h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-300 sm:flex">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -243,11 +243,11 @@ function StatCard({
 
     return (
         <div
-            className={`bg-gradient-to-br to-transparent border rounded-xl p-4 ${colorMap[color] || colorMap.indigo
+            className={`rounded-xl border bg-gradient-to-br to-transparent p-3 sm:p-4 ${colorMap[color] || colorMap.indigo
                 }`}
         >
             <p className="text-xs text-slate-500 mb-1">{label}</p>
-            <p className={`text-2xl font-bold ${colorMap[color]?.split(" ").pop()}`}>
+            <p className={`text-xl font-bold sm:text-2xl ${colorMap[color]?.split(" ").pop()}`}>
                 {value}
             </p>
         </div>
@@ -264,12 +264,12 @@ function ProjectStatRow({ project }: { project: ProjectStat }) {
     const { data: stats } = trpc.stats.overview.useQuery({ projectId: project.id });
 
     return (
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div
                 className="w-3 h-3 rounded-sm flex-shrink-0"
                 style={{ backgroundColor: project.color }}
             />
-            <span className="text-sm text-slate-300 flex-1">{project.name}</span>
+            <span className="min-w-40 flex-1 text-sm text-slate-300">{project.name}</span>
             <span className="text-xs text-slate-500">
                 {stats?.totalOpen ?? "..."} открыто
             </span>

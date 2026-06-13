@@ -7,9 +7,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     const { collapsed } = useSidebar();
 
     return (
-        <div className="min-h-screen bg-slate-950">
+        <div className="min-h-dvh bg-slate-950">
             <Sidebar />
-            <main className={`h-screen transition-all duration-300 ${collapsed ? "ml-16" : "ml-64"}`}>
+            <main className={`h-dvh min-w-0 overflow-hidden pt-14 pb-20 transition-all duration-300 md:pb-0 md:pt-0 ${collapsed ? "md:ml-16" : "md:ml-64"}`}>
                 {children}
             </main>
         </div>

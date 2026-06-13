@@ -172,7 +172,7 @@ export function ListView({ tasks, projectSections = [] }: { tasks: Task[]; proje
         const targetSectionId = newSectionId;
         const sourceSectionId = activeTask.projectSectionId ?? null;
 
-        let targetTasks = tasks.filter(t => (targetSectionId ? t.projectSectionId === targetSectionId : !t.projectSectionId));
+        const targetTasks = tasks.filter(t => (targetSectionId ? t.projectSectionId === targetSectionId : !t.projectSectionId));
 
         // Remove active from source if different (though we just filtered raw tasks, so active might be in targetTasks if src==target)
         if (sourceSectionId === targetSectionId) {
@@ -241,13 +241,13 @@ export function ListView({ tasks, projectSections = [] }: { tasks: Task[]; proje
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
             >
-                <div className="space-y-8 pb-10">
+                <div className="space-y-5 pb-6 sm:space-y-8 sm:pb-10">
                     {sectionsToRender.map(section => {
                         const sectionId = section.id === "uncategorized" ? null : section.id;
                         const sectionTasks = tasks.filter(t => (sectionId ? t.projectSectionId === sectionId : !t.projectSectionId));
 
                         return (
-                            <div key={section.id} className="space-y-3">
+                            <div key={section.id} className="space-y-2.5 sm:space-y-3">
                                 <div className="flex items-center gap-2 border-b border-slate-700/50 pb-2">
                                     <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider">
                                         {section.name}
@@ -262,7 +262,7 @@ export function ListView({ tasks, projectSections = [] }: { tasks: Task[]; proje
                                     items={sectionTasks.map(t => t.id)}
                                     strategy={verticalListSortingStrategy}
                                 >
-                                    <div className="space-y-2 min-h-[50px]" /* min-height for drop target */>
+                                    <div className="min-h-10 space-y-2 sm:min-h-[50px]" /* min-height for drop target */>
                                         {sectionTasks.map((task) => (
                                             <SortableTaskItem
                                                 key={task.id}

@@ -21,7 +21,7 @@ function TabButton({
     return (
         <button
             onClick={onClick}
-            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${active
+            className={`flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition sm:flex-none ${active
                 ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
                 : "text-slate-400 hover:bg-slate-700/60 hover:text-white"
                 }`}
@@ -41,13 +41,13 @@ export default function ArchivePage() {
 
     return (
         <div className="h-full flex flex-col">
-            <div className="flex items-center justify-between gap-4 border-b border-slate-700/50 px-6 py-4">
+            <div className="flex flex-col justify-between gap-3 border-b border-slate-700/50 px-4 py-3 sm:flex-row sm:items-center sm:px-6 sm:py-4">
                 <div>
                     <h1 className="text-xl font-bold text-white">Архив</h1>
                     <p className="mt-1 text-xs text-slate-500">Завершённые задачи и проекты остаются здесь без автоочистки</p>
                 </div>
 
-                <div className="flex rounded-xl bg-slate-800/80 p-1">
+                <div className="flex w-full rounded-xl bg-slate-800/80 p-1 sm:w-auto">
                     <TabButton
                         active={activeTab === "tasks"}
                         label="Задачи"
@@ -67,7 +67,7 @@ export default function ArchivePage() {
                 {activeTab === "tasks" ? (
                     <TaskView title="Задачи в архиве" archived showViewToggle={false} hideHeader />
                 ) : (
-                    <div className="h-full overflow-auto p-6">
+                    <div className="h-full overflow-auto p-4 sm:p-6">
                         <ProjectRetentionList mode="archive" />
                     </div>
                 )}

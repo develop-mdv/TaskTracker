@@ -26,14 +26,14 @@ function ProjectContent({ params }: { params: Promise<{ id: string }> }) {
     );
 
     return (
-        <div className="h-screen flex flex-col">
+        <div className="h-full flex flex-col">
             {/* Tabs bar */}
-            <div className="flex items-center gap-3 px-6 pt-3 pb-0 shrink-0">
-                <div className="flex bg-slate-800/80 rounded-xl p-1">
+            <div className="flex items-center gap-3 px-3 pt-2 pb-0 shrink-0 sm:px-6 sm:pt-3">
+                <div className="flex w-full bg-slate-800/80 rounded-xl p-1 sm:w-auto">
                     <button
                         onClick={() => setActiveTab("tasks")}
                         className={`
-                            px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200
+                            flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 sm:flex-none sm:px-4 sm:py-1.5
                             ${activeTab === "tasks"
                                 ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/25"
                                 : "text-slate-400 hover:text-white hover:bg-slate-700/50"
@@ -50,7 +50,7 @@ function ProjectContent({ params }: { params: Promise<{ id: string }> }) {
                     <button
                         onClick={() => setActiveTab("notes")}
                         className={`
-                            px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200
+                            flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 sm:flex-none sm:px-4 sm:py-1.5
                             ${activeTab === "notes"
                                 ? "bg-amber-500 text-slate-900 shadow-lg shadow-amber-500/25"
                                 : "text-slate-400 hover:text-white hover:bg-slate-700/50"
@@ -67,7 +67,7 @@ function ProjectContent({ params }: { params: Promise<{ id: string }> }) {
                     <button
                         onClick={() => setActiveTab("completed")}
                         className={`
-                            px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200
+                            flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 sm:flex-none sm:px-4 sm:py-1.5
                             ${activeTab === "completed"
                                 ? "bg-green-600 text-white shadow-lg shadow-green-500/25"
                                 : "text-slate-400 hover:text-white hover:bg-slate-700/50"

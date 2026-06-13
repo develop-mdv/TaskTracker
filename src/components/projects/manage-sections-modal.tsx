@@ -87,9 +87,9 @@ export function ManageSectionsModal({ projectId, onClose }: ManageSectionsModalP
     );
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
             <div
-                className="bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]"
+                className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-900 shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
@@ -101,7 +101,7 @@ export function ManageSectionsModal({ projectId, onClose }: ManageSectionsModalP
                     </button>
                 </div>
 
-                <div className="p-6 flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6">
                     {/* Create New */}
                     <form onSubmit={handleCreate} className="flex gap-2 mb-6">
                         <input

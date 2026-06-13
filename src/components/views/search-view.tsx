@@ -67,8 +67,8 @@ export function SearchView() {
 
     return (
         <div className="h-full flex flex-col">
-            <div className="border-b border-slate-700/50 px-6 py-4">
-                <form onSubmit={handleSubmit} className="flex items-center gap-3">
+            <div className="border-b border-slate-700/50 px-4 py-3 sm:px-6 sm:py-4">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                     <div className="relative flex-1 max-w-3xl">
                         <svg
                             className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
@@ -88,7 +88,7 @@ export function SearchView() {
                     </div>
                     <button
                         type="submit"
-                        className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-50"
+                        className="min-h-10 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-50 sm:min-h-0"
                         disabled={!draft.trim()}
                     >
                         Найти
@@ -96,7 +96,7 @@ export function SearchView() {
                 </form>
             </div>
 
-            <div className="flex-1 overflow-auto px-6 py-6">
+            <div className="flex-1 overflow-auto px-4 py-4 sm:px-6 sm:py-6">
                 {!query ? (
                     <div className="flex h-full items-center justify-center text-sm text-slate-500">
                         Начните вводить запрос выше.
@@ -110,7 +110,7 @@ export function SearchView() {
                         Ничего не найдено.
                     </div>
                 ) : (
-                    <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[1fr_0.9fr]">
+                    <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[1fr_0.9fr] lg:gap-6">
                         <section className="space-y-3">
                             <ResultHeader title="Задачи" count={tasks.length} />
                             <div className="space-y-2">

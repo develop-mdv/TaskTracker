@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
 /* FullCalendar dark theme overrides */
 .calendar-wrapper .fc {
   --fc-border-color: rgba(51, 65, 85, 0.5);
@@ -66,6 +79,54 @@
 .calendar-wrapper .fc .fc-scrollgrid {
   border-radius: 12px;
   overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  .calendar-wrapper .fc {
+    font-size: 12px;
+  }
+
+  .calendar-wrapper .fc .fc-toolbar {
+    align-items: stretch;
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-wrapper .fc .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+  }
+
+  .calendar-wrapper .fc .fc-toolbar-chunk:first-child {
+    order: 2;
+  }
+
+  .calendar-wrapper .fc .fc-toolbar-chunk:nth-child(2) {
+    order: 1;
+  }
+
+  .calendar-wrapper .fc .fc-toolbar-chunk:last-child {
+    order: 3;
+  }
+
+  .calendar-wrapper .fc .fc-toolbar-title {
+    font-size: 1rem;
+    text-align: center;
+  }
+
+  .calendar-wrapper .fc .fc-button {
+    min-height: 36px;
+    padding: 6px 10px;
+  }
+
+  .calendar-wrapper .fc .fc-daygrid-day-frame {
+    min-height: 74px;
+  }
+
+  .calendar-wrapper .fc .fc-event {
+    padding: 1px 4px;
+  }
 }
 
 /* Scrollbar styling */

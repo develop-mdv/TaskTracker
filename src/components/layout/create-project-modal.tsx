@@ -28,9 +28,9 @@ export function CreateProjectModal({ onClose }: { onClose: () => void }) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-3 backdrop-blur-sm sm:items-center sm:p-4">
             <div
-                className="bg-slate-800 border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-md p-6"
+                className="w-full max-w-md rounded-2xl border border-slate-700/50 bg-slate-800 p-4 shadow-2xl sm:p-6"
                 onClick={(e) => e.stopPropagation()}
             >
                 <h2 className="text-lg font-semibold text-white mb-4">Новый проект</h2>
@@ -60,7 +60,7 @@ export function CreateProjectModal({ onClose }: { onClose: () => void }) {
                                     key={c}
                                     type="button"
                                     onClick={() => setColor(c)}
-                                    className={`w-8 h-8 rounded-lg transition-all ${color === c
+                                    className={`h-10 w-10 rounded-lg transition-all sm:h-8 sm:w-8 ${color === c
                                             ? "ring-2 ring-white ring-offset-2 ring-offset-slate-800 scale-110"
                                             : "hover:scale-105"
                                         }`}
@@ -70,18 +70,18 @@ export function CreateProjectModal({ onClose }: { onClose: () => void }) {
                         </div>
                     </div>
 
-                    <div className="flex gap-3 justify-end pt-2">
+                    <div className="flex gap-3 pt-2 sm:justify-end">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 text-sm text-slate-400 hover:text-white transition"
+                            className="min-h-10 flex-1 px-4 py-2 text-sm text-slate-400 transition hover:text-white sm:flex-none"
                         >
                             Отмена
                         </button>
                         <button
                             type="submit"
                             disabled={!name.trim() || createProject.isPending}
-                            className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg font-medium transition"
+                            className="min-h-10 flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:opacity-50 sm:flex-none"
                         >
                             Создать
                         </button>

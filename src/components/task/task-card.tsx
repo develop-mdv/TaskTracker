@@ -70,11 +70,11 @@ export const TaskCard = memo(function TaskCard({
 
     return (
         <div
-            className={`group bg-slate-800/50 border border-slate-700/30 rounded-lg p-3 hover:border-slate-600/50 transition-all cursor-pointer ${isDragging ? "opacity-50 shadow-2xl rotate-2 scale-105" : ""
+            className={`group cursor-pointer rounded-lg border border-slate-700/30 bg-slate-800/50 p-3 transition-all hover:border-slate-600/50 active:border-indigo-500/40 active:bg-slate-800/70 ${isDragging ? "opacity-50 shadow-2xl rotate-2 scale-105" : ""
                 } ${isCompleted ? "opacity-60" : ""}`}
             onClick={onClick}
         >
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-2.5 sm:gap-3">
                 {/* Checkbox */}
                 {!isDeleted && (
                     <button
@@ -88,7 +88,7 @@ export const TaskCard = memo(function TaskCard({
                                 setIsCompleteDialogOpen(true);
                             }
                         }}
-                        className={`mt-0.5 w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition ${isCompleted
+                        className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md border-2 transition sm:h-5 sm:w-5 ${isCompleted
                             ? "border-green-500 bg-green-500/20 text-green-400"
                             : "border-slate-600 hover:border-indigo-500"
                             }`}
@@ -102,22 +102,21 @@ export const TaskCard = memo(function TaskCard({
                 )}
 
                 <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 relative">
-                        <span className={`text-sm font-medium ${isCompleted ? "line-through text-slate-500" : "text-white"}`}>
+                    <div className="relative flex min-w-0 items-start gap-2">
+                        <span className={`min-w-0 flex-1 break-words text-[15px] font-medium leading-snug sm:text-sm ${isCompleted ? "line-through text-slate-500" : "text-white"}`}>
                             {task.title}
                         </span>
                         {task.priority > 0 && (
-                            <span className={`text-xs px-1.5 py-0.5 rounded ${p.bg} ${p.color}`}>
+                            <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs ${p.bg} ${p.color}`}>
                                 {p.label}
                             </span>
                         )}
                         {task.recurrenceRuleId && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400" title="Повторяющаяся задача">
+                            <span className="shrink-0 rounded bg-indigo-500/10 px-1.5 py-0.5 text-xs text-indigo-400" title="Повторяющаяся задача">
                                 🔄
                             </span>
                         )}
 
-                        {/* Copy Button (Hover) */}
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -129,7 +128,7 @@ export const TaskCard = memo(function TaskCard({
                                 // alert("!"); // Too intrusive
                                 // Ideally a toast, but I don't see toast lib.
                             }}
-                            className="hidden group-hover:block ml-auto p-1 text-slate-500 hover:text-indigo-400 bg-slate-800/80 rounded"
+                            className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-800/80 text-slate-500 opacity-100 transition hover:text-indigo-400 sm:h-auto sm:w-auto sm:p-1 sm:opacity-0 sm:group-hover:opacity-100"
                             title="Копировать текст задачи"
                         >
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -139,7 +138,7 @@ export const TaskCard = memo(function TaskCard({
                     </div>
 
                     {task.description && (
-                        <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                        <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-slate-500 sm:line-clamp-2">
                             <LinkifiedText text={task.description} />
                         </p>
                     )}

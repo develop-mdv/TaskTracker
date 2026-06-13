@@ -115,11 +115,11 @@ function AttachmentPreviewModal({
 
     return (
         <div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
             onClick={onClose}
         >
             <div
-                className="relative max-w-[90vw] max-h-[90vh] flex flex-col items-center"
+                className="relative flex max-h-[90vh] max-w-[90vw] flex-col items-center"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Close button */}
@@ -149,14 +149,14 @@ function AttachmentPreviewModal({
                     />
                 )}
                 {cat === "audio" && (
-                    <div className="bg-slate-900 border border-slate-700 rounded-2xl p-8 min-w-[400px] text-center space-y-4">
+                    <div className="w-[calc(100vw-2rem)] max-w-md space-y-4 rounded-2xl border border-slate-700 bg-slate-900 p-5 text-center sm:min-w-[400px] sm:p-8">
                         <FileTypeIcon mimeType={attachment.mimeType} className="w-12 h-12 mx-auto" />
                         <p className="text-white font-medium">{attachment.filename}</p>
                         <audio src={downloadUrl} controls autoPlay className="w-full" />
                     </div>
                 )}
                 {cat === "pdf" && (
-                    <div className="bg-slate-900 border border-slate-700 rounded-2xl p-8 min-w-[400px] text-center space-y-4">
+                    <div className="w-[calc(100vw-2rem)] max-w-md space-y-4 rounded-2xl border border-slate-700 bg-slate-900 p-5 text-center sm:min-w-[400px] sm:p-8">
                         <FileTypeIcon mimeType="application/pdf" className="w-12 h-12 mx-auto" />
                         <p className="text-white font-medium">{attachment.filename}</p>
                         <a
@@ -170,7 +170,7 @@ function AttachmentPreviewModal({
                     </div>
                 )}
                 {(cat === "document" || cat === "archive" || cat === "other") && (
-                    <div className="bg-slate-900 border border-slate-700 rounded-2xl p-8 min-w-[400px] text-center space-y-4">
+                    <div className="w-[calc(100vw-2rem)] max-w-md space-y-4 rounded-2xl border border-slate-700 bg-slate-900 p-5 text-center sm:min-w-[400px] sm:p-8">
                         <FileTypeIcon mimeType={attachment.mimeType} className="w-12 h-12 mx-auto" />
                         <p className="text-white font-medium">{attachment.filename}</p>
                         {attachment.size && (
@@ -256,7 +256,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
     if (isLoading) {
         return (
             <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-sm" onClick={onClose}>
-                <div className="w-full max-w-xl bg-slate-900 h-full animate-pulse" />
+                <div className="h-full w-full animate-pulse bg-slate-900 sm:max-w-xl" />
             </div>
         );
     }
@@ -334,12 +334,12 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
             onClick={onClose}
         >
             <div
-                className="w-full max-w-xl bg-slate-900 border-l border-slate-700/50 h-full overflow-y-auto"
+                className="h-full w-full overflow-y-auto bg-slate-900 sm:max-w-xl sm:border-l sm:border-slate-700/50"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="sticky top-0 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700/50 px-6 py-4 flex items-center justify-between z-10">
-                    <div className="flex items-center gap-3">
+                <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-700/50 bg-slate-900/95 px-4 py-3 backdrop-blur-sm sm:px-6 sm:py-4">
+                    <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                         <button
                             onClick={() => {
                                 if (isCompleted) {
@@ -348,7 +348,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                     complete.mutate({ id: task.id });
                                 }
                             }}
-                            className={`px-3 py-1.5 text-xs rounded-lg font-medium transition ${isCompleted
+                            className={`min-h-9 rounded-lg px-3 py-1.5 text-xs font-medium transition ${isCompleted
                                 ? "bg-green-500/10 text-green-400 hover:bg-green-500/20"
                                 : "bg-slate-800 text-slate-400 hover:bg-indigo-500/20 hover:text-indigo-400"
                                 }`}
@@ -356,7 +356,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                             {isCompleted ? "✓ Выполнено" : "Выполнить"}
                         </button>
                         {task.recurrenceRuleId && (
-                            <span className="text-xs text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md" title="Повторяющаяся задача">
+                            <span className="truncate rounded-md bg-indigo-500/10 px-2 py-1 text-xs text-indigo-400" title="Повторяющаяся задача">
                                 🔄 Повторяющаяся
                             </span>
                         )}
@@ -382,7 +382,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                     </div>
                 </div>
 
-                <div className="p-6 space-y-6">
+                <div className="space-y-5 p-4 sm:space-y-6 sm:p-6">
                     {/* Title */}
                     <div>
                         {editTitle !== null ? (
@@ -401,11 +401,11 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                     if (e.key === "Escape") setEditTitle(null);
                                 }}
                                 autoFocus
-                                className="w-full text-xl font-semibold bg-transparent text-white outline-none border-b-2 border-indigo-500 pb-1"
+                                className="w-full border-b-2 border-indigo-500 bg-transparent pb-1 text-lg font-semibold text-white outline-none sm:text-xl"
                             />
                         ) : (
                             <h2
-                                className="text-xl font-semibold text-white cursor-text hover:text-indigo-300 transition"
+                                className="cursor-text break-words text-lg font-semibold text-white transition hover:text-indigo-300 sm:text-xl"
                                 onClick={() => setEditTitle(task.title)}
                             >
                                 {task.title}
@@ -499,7 +499,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                     )}
 
                     {/* Fields grid */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
                             <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">
                                 Приоритет
@@ -554,7 +554,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
                             <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">
                                 Дата начала
@@ -620,7 +620,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                             <div className="space-y-2">
                                 {/* Image thumbnails grid */}
                                 {task.attachments.some(att => getFileCategory(att.mimeType) === "image") && (
-                                    <div className="grid grid-cols-3 gap-2 mb-3">
+                                    <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                                         {task.attachments
                                             .filter(att => getFileCategory(att.mimeType) === "image")
                                             .map(att => (
@@ -656,7 +656,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                     .map((att) => (
                                         <div
                                             key={att.id}
-                                            className="flex items-center gap-3 px-3 py-2.5 bg-slate-800/50 rounded-lg group hover:bg-slate-800 transition cursor-pointer"
+                                            className="group flex cursor-pointer items-center gap-3 rounded-lg bg-slate-800/50 px-3 py-2.5 transition hover:bg-slate-800"
                                             onClick={() => handlePreview(att)}
                                         >
                                             <FileTypeIcon mimeType={att.mimeType} />
@@ -671,7 +671,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                                     e.stopPropagation();
                                                     handleDownload(att.id, att.filename);
                                                 }}
-                                                className="opacity-0 group-hover:opacity-100 text-xs text-indigo-400 hover:text-indigo-300 transition"
+                                                className="text-xs text-indigo-400 opacity-100 transition hover:text-indigo-300 sm:opacity-0 sm:group-hover:opacity-100"
                                             >
                                                 Скачать
                                             </button>
@@ -680,7 +680,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                                     e.stopPropagation();
                                                     deleteAttachment.mutate({ id: att.id });
                                                 }}
-                                                className="opacity-0 group-hover:opacity-100 text-xs text-red-400 hover:text-red-300 transition"
+                                                className="text-xs text-red-400 opacity-100 transition hover:text-red-300 sm:opacity-0 sm:group-hover:opacity-100"
                                             >
                                                 ✕
                                             </button>
@@ -699,13 +699,13 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                             <span className="text-xs text-slate-500 flex-1 truncate">{att.filename}</span>
                                             <button
                                                 onClick={() => handleDownload(att.id, att.filename)}
-                                                className="opacity-0 group-hover:opacity-100 text-xs text-indigo-400 hover:text-indigo-300 transition"
+                                                className="text-xs text-indigo-400 opacity-100 transition hover:text-indigo-300 sm:opacity-0 sm:group-hover:opacity-100"
                                             >
                                                 Скачать
                                             </button>
                                             <button
                                                 onClick={() => deleteAttachment.mutate({ id: att.id })}
-                                                className="opacity-0 group-hover:opacity-100 text-xs text-red-400 hover:text-red-300 transition"
+                                                className="text-xs text-red-400 opacity-100 transition hover:text-red-300 sm:opacity-0 sm:group-hover:opacity-100"
                                             >
                                                 ✕
                                             </button>

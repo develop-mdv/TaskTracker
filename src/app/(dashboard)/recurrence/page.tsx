@@ -61,42 +61,43 @@ export default function RecurrencePage() {
     });
 
     return (
-        <div className="max-w-3xl mx-auto">
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 className="text-2xl font-bold text-white">Регулярные задачи</h1>
-                    <p className="text-sm text-slate-400 mt-1">
-                        Правила для автоматического создания повторяющихся задач
-                    </p>
+        <div className="h-full overflow-auto">
+            <div className="mx-auto max-w-3xl p-4 sm:p-6">
+                <div className="mb-6 flex flex-col justify-between gap-4 sm:mb-8 sm:flex-row sm:items-center">
+                    <div>
+                        <h1 className="text-2xl font-bold text-white">Регулярные задачи</h1>
+                        <p className="mt-1 text-sm text-slate-400">
+                            Правила для автоматического создания повторяющихся задач
+                        </p>
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <button
+                            onClick={() => generateDue.mutate()}
+                            disabled={generateDue.isPending}
+                            className="min-h-10 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-slate-700 disabled:opacity-50"
+                        >
+                            {generateDue.isPending ? "Проверка..." : "Создать ожидающие"}
+                        </button>
+                        <button
+                            onClick={() => {
+                                setEditRuleId(null);
+                                setShowModal(true);
+                            }}
+                            className="flex min-h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Создать правило
+                        </button>
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => generateDue.mutate()}
-                        disabled={generateDue.isPending}
-                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 text-sm font-medium rounded-lg transition"
-                    >
-                        {generateDue.isPending ? "Проверка..." : "Создать ожидающие"}
-                    </button>
-                    <button
-                    onClick={() => {
-                        setEditRuleId(null);
-                        setShowModal(true);
-                    }}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition flex items-center gap-2"
-                >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Создать правило
-                    </button>
-                </div>
-            </div>
 
-            {generateMessage && (
-                <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
-                    {generateMessage}
-                </div>
-            )}
+                {generateMessage && (
+                    <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
+                        {generateMessage}
+                    </div>
+                )}
 
             {isLoading ? (
                 <div className="space-y-3">
@@ -123,9 +124,9 @@ export default function RecurrencePage() {
                     {rules.map(rule => (
                         <div
                             key={rule.id}
-                            className="bg-slate-800/50 border border-slate-700/30 rounded-xl p-4 hover:bg-slate-800/70 transition group"
+                            className="group rounded-xl border border-slate-700/30 bg-slate-800/50 p-4 transition hover:bg-slate-800/70"
                         >
-                            <div className="flex items-start justify-between">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
                                         <h3 className="text-white font-medium truncate">{rule.title}</h3>
@@ -135,7 +136,7 @@ export default function RecurrencePage() {
                                             </span>
                                         )}
                                     </div>
-                                    <div className="flex items-center gap-3 text-xs text-slate-400">
+                                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400 sm:gap-3">
                                         <span className="flex items-center gap-1">
                                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -168,7 +169,7 @@ export default function RecurrencePage() {
                                     )}
                                 </div>
 
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition ml-3">
+                                <div className="ml-0 flex items-center gap-1 opacity-100 transition sm:ml-3 sm:opacity-0 sm:group-hover:opacity-100">
                                     <button
                                         onClick={() => updateRule.mutate({ id: rule.id, active: !rule.active })}
                                         className={`p-1.5 rounded-lg text-xs transition ${rule.active
@@ -220,15 +221,16 @@ export default function RecurrencePage() {
                 </div>
             )}
 
-            {showModal && (
-                <RecurrenceModal
-                    editRuleId={editRuleId}
-                    onClose={() => {
-                        setShowModal(false);
-                        setEditRuleId(null);
-                    }}
-                />
-            )}
+                {showModal && (
+                    <RecurrenceModal
+                        editRuleId={editRuleId}
+                        onClose={() => {
+                            setShowModal(false);
+                            setEditRuleId(null);
+                        }}
+                    />
+                )}
+            </div>
         </div>
     );
 }

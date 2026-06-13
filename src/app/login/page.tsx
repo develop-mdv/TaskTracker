@@ -32,10 +32,10 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
+        <div className="flex min-h-dvh items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 p-4">
             <div className="w-full max-w-md">
-                <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl p-8">
-                    <div className="text-center mb-8">
+                <div className="rounded-2xl border border-slate-700/50 bg-slate-800/50 p-5 shadow-2xl backdrop-blur-xl sm:p-8">
+                    <div className="mb-6 text-center sm:mb-8">
                         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 mb-4">
                             <svg className="w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
@@ -62,7 +62,7 @@ export default function LoginPage() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
-                                className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition"
+                                className="w-full rounded-lg border border-slate-600/50 bg-slate-900/50 px-4 py-3 text-base text-white placeholder-slate-500 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 sm:py-2.5 sm:text-sm"
                                 placeholder="admin@tasktracker.local"
                             />
                         </div>
@@ -77,7 +77,7 @@ export default function LoginPage() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
-                                className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition"
+                                className="w-full rounded-lg border border-slate-600/50 bg-slate-900/50 px-4 py-3 text-base text-white placeholder-slate-500 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 sm:py-2.5 sm:text-sm"
                                 placeholder="••••••••"
                             />
                         </div>
@@ -85,7 +85,7 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-600/50 text-white rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+                            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 py-2.5 font-medium text-white transition-colors duration-200 hover:bg-indigo-700 disabled:bg-indigo-600/50"
                         >
                             {loading ? (
                                 <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">

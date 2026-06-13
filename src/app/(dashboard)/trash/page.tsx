@@ -27,7 +27,7 @@ function TabButton({
     return (
         <button
             onClick={onClick}
-            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${active
+            className={`flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition sm:flex-none ${active
                 ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
                 : "text-slate-400 hover:bg-slate-700/60 hover:text-white"
                 }`}
@@ -57,13 +57,13 @@ export default function TrashPage() {
 
     return (
         <div className="h-full flex flex-col">
-            <div className="flex items-center justify-between gap-4 border-b border-slate-700/50 px-6 py-4">
+            <div className="flex flex-col justify-between gap-3 border-b border-slate-700/50 px-4 py-3 sm:flex-row sm:items-center sm:px-6 sm:py-4">
                 <div>
                     <h1 className="text-xl font-bold text-white">Корзина</h1>
                     <p className="mt-1 text-xs text-slate-500">Автоочистка удаляет элементы старше 7 дней</p>
                 </div>
 
-                <div className="flex rounded-xl bg-slate-800/80 p-1">
+                <div className="flex w-full rounded-xl bg-slate-800/80 p-1 sm:w-auto">
                     <TabButton
                         active={activeTab === "tasks"}
                         label="Задачи"
@@ -79,7 +79,7 @@ export default function TrashPage() {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-auto p-6">
+            <div className="flex-1 overflow-auto p-4 sm:p-6">
                 {activeTab === "projects" ? (
                     <ProjectRetentionList mode="trash" />
                 ) : isLoading ? (
@@ -100,7 +100,7 @@ export default function TrashPage() {
                                 key={task.id}
                                 className="group rounded-lg border border-slate-700/30 bg-slate-800/50 p-3 transition hover:border-slate-600/60"
                             >
-                                <div className="flex items-center justify-between gap-4">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                                     <button
                                         onClick={() => setSelectedTaskId(task.id)}
                                         className="min-w-0 flex-1 text-left"
@@ -116,14 +116,14 @@ export default function TrashPage() {
                                         <button
                                             onClick={() => restoreMut.mutate({ id: task.id })}
                                             disabled={restoreMut.isPending}
-                                            className="rounded-lg bg-indigo-500/10 px-3 py-1.5 text-xs font-medium text-indigo-300 transition hover:bg-indigo-500/20 disabled:opacity-50"
+                                            className="min-h-9 flex-1 rounded-lg bg-indigo-500/10 px-3 py-1.5 text-xs font-medium text-indigo-300 transition hover:bg-indigo-500/20 disabled:opacity-50 sm:flex-none"
                                         >
                                             Восстановить
                                         </button>
                                         <button
                                             onClick={() => hardDeleteMut.mutate({ id: task.id })}
                                             disabled={hardDeleteMut.isPending}
-                                            className="rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+                                            className="min-h-9 flex-1 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-300 transition hover:bg-red-500/20 disabled:opacity-50 sm:flex-none"
                                         >
                                             Удалить навсегда
                                         </button>

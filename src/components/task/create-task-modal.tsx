@@ -56,11 +56,11 @@ export function CreateTaskModal({
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-3 backdrop-blur-sm sm:items-center sm:p-4"
             onClick={onClose}
         >
             <div
-                className="bg-slate-800 border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-lg p-6"
+                className="w-full max-w-lg rounded-2xl border border-slate-700/50 bg-slate-800 p-4 shadow-2xl sm:p-6"
                 onClick={(e) => e.stopPropagation()}
             >
                 <h2 className="text-lg font-semibold text-white mb-4">Новая задача</h2>
@@ -87,7 +87,7 @@ export function CreateTaskModal({
                         />
                     </div>
 
-                    <div className="flex gap-4">
+                    <div className="flex flex-col gap-4 sm:flex-row">
                         <div className="flex-1">
                             <label className="block text-xs font-medium text-slate-400 mb-1">
                                 Приоритет
@@ -118,18 +118,18 @@ export function CreateTaskModal({
                         </div>
                     </div>
 
-                    <div className="flex gap-3 justify-end pt-2">
+                    <div className="flex gap-3 pt-2 sm:justify-end">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 text-sm text-slate-400 hover:text-white transition"
+                            className="min-h-10 flex-1 px-4 py-2 text-sm text-slate-400 transition hover:text-white sm:flex-none"
                         >
                             Отмена
                         </button>
                         <button
                             type="submit"
                             disabled={!title.trim() || createTask.isPending}
-                            className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg font-medium transition"
+                            className="min-h-10 flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:opacity-50 sm:flex-none"
                         >
                             Создать
                         </button>
