@@ -13,6 +13,7 @@ type SearchTask = {
     description?: string | null;
     dueDate?: Date | string | null;
     completedAt?: Date | string | null;
+    completionResult?: "SUCCESS" | "FAILURE";
     priority: number;
     tags: string[];
     project?: { id: string; name: string; color: string } | null;
@@ -130,8 +131,8 @@ export function SearchView() {
                                                 )}
                                             </div>
                                             {task.completedAt && (
-                                                <span className="shrink-0 rounded-full bg-green-500/10 px-2 py-0.5 text-xs text-green-400">
-                                                    готово
+                                                <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${task.completionResult === "FAILURE" ? "bg-red-500/10 text-red-400" : "bg-green-500/10 text-green-400"}`}>
+                                                    {task.completionResult === "FAILURE" ? "не выполнено" : "готово"}
                                                 </span>
                                             )}
                                         </div>

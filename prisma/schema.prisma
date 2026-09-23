@@ -67,6 +67,11 @@ model BoardColumn {
   @@index([section])
 }
 
+enum TaskCompletionResult {
+  SUCCESS
+  FAILURE
+}
+
 model Task {
   id          String   @id @default(cuid())
   title       String
@@ -97,6 +102,7 @@ model Task {
 
   // Soft states
   completedAt    DateTime?
+  completionResult TaskCompletionResult @default(SUCCESS)
   completionNote String?   @db.Text // Note added when completing the task
   deletedAt      DateTime?
 

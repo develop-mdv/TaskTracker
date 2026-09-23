@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { formatTaskToText, copyToClipboard, downloadAsFile } from "@/lib/export-utils";
 import { LinkifiedText } from "@/components/ui/linkified-text";
+import { CompleteTaskDialog } from "./complete-task-dialog";
 import { getBrowserTimeZone, toDateInputValue } from "@/lib/timezone";
 
 const PRIORITIES = [
@@ -244,6 +245,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
     const [editTitle, setEditTitle] = useState<string | null>(null);
     const [editDescription, setEditDescription] = useState<string | null>(null);
     const [editCompletionNote, setEditCompletionNote] = useState<string | null>(null);
+    const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
 
     // Preview state
     const [previewAttachment, setPreviewAttachment] = useState<{
@@ -325,6 +327,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
     };
 
     const isCompleted = !!task.completedAt;
+    const isFailed = isCompleted && task.completionResult === "FAILURE";
     const completionNote = task.completionNote ?? "";
     const timezone = getBrowserTimeZone();
 
@@ -345,15 +348,17 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                 if (isCompleted) {
                                     uncomplete.mutate({ id: task.id });
                                 } else {
-                                    complete.mutate({ id: task.id });
+                                    setIsCompleteDialogOpen(true);
                                 }
                             }}
-                            className={`min-h-9 rounded-lg px-3 py-1.5 text-xs font-medium transition ${isCompleted
+                            className={`min-h-9 rounded-lg px-3 py-1.5 text-xs font-medium transition ${isFailed
+                                ? "bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                                : isCompleted
                                 ? "bg-green-500/10 text-green-400 hover:bg-green-500/20"
                                 : "bg-slate-800 text-slate-400 hover:bg-indigo-500/20 hover:text-indigo-400"
                                 }`}
                         >
-                            {isCompleted ? "✓ Выполнено" : "Выполнить"}
+                            {isFailed ? "× Не выполнено" : isCompleted ? "✓ Выполнено" : "Завершить"}
                         </button>
                         {task.recurrenceRuleId && (
                             <span className="truncate rounded-md bg-indigo-500/10 px-2 py-1 text-xs text-indigo-400" title="Повторяющаяся задача">
@@ -460,7 +465,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                     {isCompleted && (
                         <div>
                             <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                                Итог выполнения
+                                {isFailed ? "Причина невыполнения" : "Итог выполнения"}
                             </label>
                             {editCompletionNote !== null ? (
                                 <textarea
@@ -481,17 +486,17 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                     }}
                                     rows={5}
                                     autoFocus
-                                    className="w-full mt-2 px-4 py-2.5 bg-slate-800/50 border border-green-500/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 resize-none"
+                                    className={`w-full mt-2 px-4 py-2.5 bg-slate-800/50 border rounded-lg text-white text-sm focus:outline-none focus:ring-2 resize-none ${isFailed ? "border-red-500/20 focus:ring-red-500/40" : "border-green-500/20 focus:ring-green-500/40"}`}
                                 />
                             ) : (
                                 <div
-                                    className="mt-2 text-sm text-slate-300 cursor-text hover:bg-green-500/5 rounded-lg p-3 transition min-h-[54px] whitespace-pre-wrap border border-green-500/10 bg-green-500/5"
+                                    className={`mt-2 text-sm text-slate-300 cursor-text rounded-lg p-3 transition min-h-[54px] whitespace-pre-wrap border ${isFailed ? "border-red-500/10 bg-red-500/5 hover:bg-red-500/10" : "border-green-500/10 bg-green-500/5 hover:bg-green-500/10"}`}
                                     onClick={() => setEditCompletionNote(completionNote)}
                                 >
                                     {completionNote ? (
                                         <LinkifiedText text={completionNote} />
                                     ) : (
-                                        <span className="text-slate-600">Нажмите, чтобы добавить итог выполнения...</span>
+                                        <span className="text-slate-600">{isFailed ? "Нажмите, чтобы добавить причину..." : "Нажмите, чтобы добавить итог выполнения..."}</span>
                                     )}
                                 </div>
                             )}
@@ -722,11 +727,18 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                         <p>Создано: {new Date(task.createdAt).toLocaleString("ru-RU", { timeZone: timezone })}</p>
                         <p>Обновлено: {new Date(task.updatedAt).toLocaleString("ru-RU", { timeZone: timezone })}</p>
                         {task.completedAt && (
-                            <p>Выполнено: {new Date(task.completedAt).toLocaleString("ru-RU", { timeZone: timezone })}</p>
+                            <p>{isFailed ? "Не выполнено" : "Выполнено"}: {new Date(task.completedAt).toLocaleString("ru-RU", { timeZone: timezone })}</p>
                         )}
                     </div>
                 </div>
             </div>
+
+            <CompleteTaskDialog
+                taskTitle={task.title}
+                isOpen={isCompleteDialogOpen}
+                onClose={() => setIsCompleteDialogOpen(false)}
+                onComplete={(result, note) => complete.mutateAsync({ id: task.id, result, completionNote: note })}
+            />
 
             {/* Lightbox Preview */}
             {previewAttachment && previewUrl && (

@@ -38,6 +38,7 @@ interface Task {
     tags: string[];
     dueDate?: string | Date | null;
     completedAt?: string | Date | null;
+    completionResult?: "SUCCESS" | "FAILURE";
     deletedAt?: string | Date | null;
     section?: string | null;
     projectId?: string | null;
@@ -577,7 +578,8 @@ export function KanbanBoard({
                             boardColumnId: targetColumnId,
                             projectSectionId: targetSectionId,
                             position: newPosition, // This is an approximation
-                            completedAt: isDoneColumn ? new Date() : (t.boardColumnId !== targetColumnId && t.completedAt ? null : t.completedAt)
+                            completedAt: isDoneColumn ? new Date() : (t.completionResult === "FAILURE" ? t.completedAt : (t.boardColumnId !== targetColumnId && t.completedAt ? null : t.completedAt)),
+                            completionResult: isDoneColumn ? "SUCCESS" : t.completionResult,
                         };
                     }
                     return t;

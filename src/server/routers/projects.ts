@@ -242,7 +242,7 @@ export const projectsRouter = router({
                 // Complete all active tasks in the project
                 await tx.task.updateMany({
                     where: { projectId: input.id, completedAt: null, deletedAt: null },
-                    data: { completedAt: new Date() },
+                    data: { completedAt: new Date(), completionResult: "SUCCESS" },
                 });
 
                 return tx.project.update({

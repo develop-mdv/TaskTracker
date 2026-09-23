@@ -32,6 +32,7 @@ interface Task {
     tags: string[];
     dueDate?: string | Date | null;
     completedAt?: string | Date | null;
+    completionResult?: "SUCCESS" | "FAILURE";
     deletedAt?: string | Date | null;
     section?: string | null;
     projectId?: string | null;

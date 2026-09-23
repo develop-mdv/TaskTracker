@@ -35,9 +35,10 @@ export default function StatsPage() {
 
             <div className="flex-1 overflow-auto space-y-5 p-4 sm:space-y-6 sm:p-6">
                 {/* Summary cards */}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 sm:gap-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-5 sm:gap-4">
                     <StatCard label="Открытых задач" value={stats.totalOpen} color="indigo" />
                     <StatCard label="Выполнено всего" value={stats.totalCompleted} color="green" />
+                    <StatCard label="Не выполнено" value={stats.totalFailed} color="red" />
                     <StatCard
                         label="Создано за неделю"
                         value={stats.createdThisWeek}
@@ -275,6 +276,9 @@ function ProjectStatRow({ project }: { project: ProjectStat }) {
             </span>
             <span className="text-xs text-green-500/70">
                 {stats?.totalCompleted ?? "..."} выполнено
+            </span>
+            <span className="text-xs text-red-400/70">
+                {stats?.totalFailed ?? "..."} не выполнено
             </span>
         </div>
     );

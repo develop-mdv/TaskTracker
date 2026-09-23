@@ -9,11 +9,15 @@ interface ExportableTask {
     section?: { name: string } | null; // Global section
     projectSection?: { name: string } | null; // Project specific section
     completedAt?: Date | string | null;
+    completionResult?: "SUCCESS" | "FAILURE";
     completionNote?: string | null;
 }
 
 export function formatTaskToText(task: ExportableTask): string {
     let text = `• ${task.title}`;
+    if (task.completedAt) {
+        text += ` [${task.completionResult === "FAILURE" ? "Не выполнено" : "Выполнено"}]`;
+    }
     if (task.description) {
         text += `\n  ${task.description.split('\n').join('\n  ')}`;
     }

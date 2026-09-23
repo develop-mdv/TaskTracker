@@ -268,12 +268,17 @@ export const tasksRouter = router({
 
                         if (isDoneColumn) {
                             updateData.completedAt = new Date();
+                            updateData.completionResult = "SUCCESS";
                         } else {
-                            // If moving OUT of a Done column (implied by moving to a non-Done column), 
-                            // we should probably un-complete it? 
-                            // Let's check current status first or just force it?
-                            // Safe bet: if moving to "In Progress" from "Done", uncomplete.
-                            updateData.completedAt = null;
+                            const currentTask = await ctx.prisma.task.findUnique({
+                                where: { id, userId: ctx.userId },
+                                select: { completionResult: true },
+                            });
+                            // Moving a failed task between columns must not reopen it.
+                            if (currentTask?.completionResult !== "FAILURE") {
+                                updateData.completedAt = null;
+                                updateData.completionResult = "SUCCESS";
+                            }
                         }
                     }
                 }
@@ -297,10 +302,11 @@ export const tasksRouter = router({
     complete: protectedProcedure
         .input(z.object({
             id: z.string(),
-            completionNote: z.string().optional()
+            completionNote: z.string().optional(),
+            result: z.enum(["SUCCESS", "FAILURE"]).default("SUCCESS"),
         }))
         .mutation(async ({ ctx, input }) => {
-            // Auto-move to "Done" column logic
+            // Only successful tasks move to a "Done" column.
             const task = await ctx.prisma.task.findUnique({
                 where: { id: input.id, userId: ctx.userId },
                 select: { projectId: true, boardColumnId: true }
@@ -308,7 +314,7 @@ export const tasksRouter = router({
 
             let newColumnId = undefined;
 
-            if (task) {
+            if (task && input.result === "SUCCESS") {
                 // Find a "Done" column in the task's scope (project or global)
                 // Schema says: projectId String? @relation...
                 // BoardColumn does not have userId, so we filter only by context (projectId or section)
@@ -338,7 +344,8 @@ export const tasksRouter = router({
                 where: { id: input.id, userId: ctx.userId },
                 data: {
                     completedAt: new Date(),
-                    completionNote: input.completionNote,
+                    completionResult: input.result,
+                    completionNote: input.completionNote ?? null,
                     ...(newColumnId ? { boardColumnId: newColumnId } : {})
                 },
             });
@@ -349,7 +356,7 @@ export const tasksRouter = router({
         .mutation(async ({ ctx, input }) => {
             return ctx.prisma.task.update({
                 where: { id: input.id, userId: ctx.userId },
-                data: { completedAt: null },
+                data: { completedAt: null, completionResult: "SUCCESS", completionNote: null },
             });
         }),
 
@@ -393,7 +400,7 @@ export const tasksRouter = router({
         .mutation(async ({ ctx, input }) => {
             return ctx.prisma.task.updateMany({
                 where: { id: { in: input.ids }, userId: ctx.userId },
-                data: { completedAt: new Date() },
+                data: { completedAt: new Date(), completionResult: "SUCCESS" },
             });
         }),
 

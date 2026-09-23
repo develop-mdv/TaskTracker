@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { router, protectedProcedure } from "../trpc";
 
 export const statsRouter = router({
@@ -9,7 +10,7 @@ export const statsRouter = router({
             }).optional()
         )
         .query(async ({ ctx, input }) => {
-            const where: Record<string, unknown> = { userId: ctx.userId };
+            const where: Prisma.TaskWhereInput = { userId: ctx.userId };
             if (input?.projectId) where.projectId = input.projectId;
 
             const now = new Date();
@@ -19,6 +20,7 @@ export const statsRouter = router({
             const [
                 totalOpen,
                 totalCompleted,
+                totalFailed,
                 createdThisWeek,
                 completedThisWeek,
                 createdThisMonth,
@@ -28,36 +30,39 @@ export const statsRouter = router({
             ] = await Promise.all([
                 // Open tasks
                 ctx.prisma.task.count({
-                    where: { ...where, completedAt: null, deletedAt: null } as any,
+                    where: { ...where, completedAt: null, deletedAt: null },
                 }),
                 // Total completed
                 ctx.prisma.task.count({
-                    where: { ...where, completedAt: { not: null }, deletedAt: null } as any,
+                    where: { ...where, completedAt: { not: null }, completionResult: "SUCCESS", deletedAt: null },
+                }),
+                ctx.prisma.task.count({
+                    where: { ...where, completedAt: { not: null }, completionResult: "FAILURE", deletedAt: null },
                 }),
                 // Created this week
                 ctx.prisma.task.count({
-                    where: { ...where, createdAt: { gte: weekAgo }, deletedAt: null } as any,
+                    where: { ...where, createdAt: { gte: weekAgo }, deletedAt: null },
                 }),
                 // Completed this week
                 ctx.prisma.task.count({
-                    where: { ...where, completedAt: { gte: weekAgo }, deletedAt: null } as any,
+                    where: { ...where, completedAt: { gte: weekAgo }, completionResult: "SUCCESS", deletedAt: null },
                 }),
                 // Created this month
                 ctx.prisma.task.count({
-                    where: { ...where, createdAt: { gte: monthAgo }, deletedAt: null } as any,
+                    where: { ...where, createdAt: { gte: monthAgo }, deletedAt: null },
                 }),
                 // Completed this month
                 ctx.prisma.task.count({
-                    where: { ...where, completedAt: { gte: monthAgo }, deletedAt: null } as any,
+                    where: { ...where, completedAt: { gte: monthAgo }, completionResult: "SUCCESS", deletedAt: null },
                 }),
                 // In trash
                 ctx.prisma.task.count({
-                    where: { ...where, deletedAt: { not: null } } as any,
+                    where: { ...where, deletedAt: { not: null } },
                 }),
                 // By priority
                 ctx.prisma.task.groupBy({
                     by: ["priority"],
-                    where: { ...where, completedAt: null, deletedAt: null } as any,
+                    where: { ...where, completedAt: null, deletedAt: null },
                     _count: true,
                 }),
             ]);
@@ -77,14 +82,15 @@ export const statsRouter = router({
                             ...where,
                             createdAt: { gte: dayStart, lte: dayEnd },
                             deletedAt: null,
-                        } as any,
+                        },
                     }),
                     ctx.prisma.task.count({
                         where: {
                             ...where,
                             completedAt: { gte: dayStart, lte: dayEnd },
+                            completionResult: "SUCCESS",
                             deletedAt: null,
-                        } as any,
+                        },
                     }),
                 ]);
 
@@ -98,6 +104,7 @@ export const statsRouter = router({
             return {
                 totalOpen,
                 totalCompleted,
+                totalFailed,
                 createdThisWeek,
                 completedThisWeek,
                 createdThisMonth,

@@ -17,6 +17,7 @@ interface Task {
     startDate?: string | Date | null;
     endDate?: string | Date | null;
     completedAt?: string | Date | null;
+    completionResult?: "SUCCESS" | "FAILURE";
     completionNote?: string | null;
     deletedAt?: string | Date | null;
     section?: string | null;
@@ -58,6 +59,7 @@ export const TaskCard = memo(function TaskCard({
     const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
 
     const isCompleted = !!task.completedAt;
+    const isFailed = isCompleted && task.completionResult === "FAILURE";
     const isDeleted = !!task.deletedAt;
     const p = PRIORITIES[task.priority] || PRIORITIES[0];
     const timezone = getBrowserTimeZone();
@@ -88,12 +90,14 @@ export const TaskCard = memo(function TaskCard({
                                 setIsCompleteDialogOpen(true);
                             }
                         }}
-                        className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md border-2 transition sm:h-5 sm:w-5 ${isCompleted
+                        className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md border-2 transition sm:h-5 sm:w-5 ${isFailed
+                            ? "border-red-500 bg-red-500/20 text-red-400"
+                            : isCompleted
                             ? "border-green-500 bg-green-500/20 text-green-400"
                             : "border-slate-600 hover:border-indigo-500"
                             }`}
                     >
-                        {isCompleted && (
+                        {isFailed ? <span className="text-sm leading-none">×</span> : isCompleted && (
                             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
@@ -144,9 +148,9 @@ export const TaskCard = memo(function TaskCard({
                     )}
 
                     {isCompleted && task.completionNote && (
-                        <div className="mt-2 rounded-lg border border-green-500/10 bg-green-500/5 px-3 py-2">
-                            <div className="text-[10px] font-semibold uppercase tracking-wider text-green-400/80">
-                                Итог
+                        <div className={`mt-2 rounded-lg border px-3 py-2 ${isFailed ? "border-red-500/10 bg-red-500/5" : "border-green-500/10 bg-green-500/5"}`}>
+                            <div className={`text-[10px] font-semibold uppercase tracking-wider ${isFailed ? "text-red-400/80" : "text-green-400/80"}`}>
+                                {isFailed ? "Причина невыполнения" : "Итог"}
                             </div>
                             <p className="mt-1 text-xs text-slate-300 whitespace-pre-wrap line-clamp-3">
                                 <LinkifiedText text={task.completionNote} />
@@ -156,8 +160,8 @@ export const TaskCard = memo(function TaskCard({
 
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
                         {isCompleted && task.completedAt && (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-400">
-                                Выполнено {formatDate(task.completedAt)}
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${isFailed ? "bg-red-500/10 text-red-400" : "bg-green-500/10 text-green-400"}`}>
+                                {isFailed ? "Не выполнено" : "Выполнено"} {formatDate(task.completedAt)}
                             </span>
                         )}
 
@@ -207,11 +211,10 @@ export const TaskCard = memo(function TaskCard({
             </div>
 
             <CompleteTaskDialog
-                taskId={task.id}
                 taskTitle={task.title}
                 isOpen={isCompleteDialogOpen}
                 onClose={() => setIsCompleteDialogOpen(false)}
-                onComplete={(note) => completeMut.mutateAsync({ id: task.id, completionNote: note })}
+                onComplete={(result, note) => completeMut.mutateAsync({ id: task.id, result, completionNote: note })}
             />
         </div >
     );
