@@ -6,6 +6,8 @@ import { formatTaskToText, copyToClipboard, downloadAsFile } from "@/lib/export-
 import { LinkifiedText } from "@/components/ui/linkified-text";
 import { CompleteTaskDialog } from "./complete-task-dialog";
 import { getBrowserTimeZone, toDateInputValue } from "@/lib/timezone";
+import { SketchModal } from "@/components/notes/sketch-modal";
+import { uploadAttachment } from "@/lib/attachments-client";
 
 const PRIORITIES = [
     { value: 0, label: "Без приоритета" },
@@ -241,6 +243,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploading, setUploading] = useState(false);
     const [uploadError, setUploadError] = useState<string | null>(null);
+    const [showSketch, setShowSketch] = useState(false);
 
     const [editTitle, setEditTitle] = useState<string | null>(null);
     const [editDescription, setEditDescription] = useState<string | null>(null);
@@ -378,6 +381,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                         </button>
                         <button
                             onClick={onClose}
+                            aria-label="Закрыть задачу"
                             className="p-2 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition"
                         >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -595,6 +599,13 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                             <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">
                                 Вложения
                             </label>
+                            <div className="ml-auto flex gap-1">
+                            <button
+                                onClick={() => setShowSketch(true)}
+                                className="min-h-10 rounded-lg px-3 py-1 text-xs text-amber-400 transition hover:bg-amber-500/10"
+                            >
+                                ✎ Рисовать
+                            </button>
                             <button
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={uploading}
@@ -602,6 +613,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                             >
                                 {uploading ? "Загрузка..." : "+ Добавить"}
                             </button>
+                            </div>
                             <input
                                 ref={fileInputRef}
                                 type="file"
@@ -741,6 +753,11 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
             />
 
             {/* Lightbox Preview */}
+            {showSketch && <SketchModal onClose={() => setShowSketch(false)} onAttach={async (file) => {
+                await uploadAttachment(file, { taskId: task.id });
+                await utils.tasks.getById.invalidate({ id: taskId });
+                await utils.tasks.list.invalidate();
+            }} />}
             {previewAttachment && previewUrl && (
                 <AttachmentPreviewModal
                     attachment={previewAttachment}

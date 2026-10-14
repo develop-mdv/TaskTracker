@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, forwardRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { LinkifiedText } from "@/components/ui/linkified-text";
+import { notePreview, splitNoteContent } from "@/lib/note-content";
 
 interface NoteCardProps {
     note: {
@@ -31,6 +32,7 @@ interface NoteCardProps {
     style?: React.CSSProperties;
     listeners?: React.HTMLAttributes<HTMLDivElement>;
     attributes?: React.HTMLAttributes<HTMLDivElement>;
+    onOpen?: (id: string) => void;
 }
 
 const PIN_COLORS: Record<string, string> = {
@@ -52,7 +54,7 @@ const TEXT_COLORS: Record<string, string> = {
 };
 
 export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteCard(
-    { note, rotation, showProjectBadge, isTrash, isDragging, isDragOverlay, style: externalStyle, listeners, attributes },
+    { note, rotation, showProjectBadge, isTrash, isDragging, isDragOverlay, style: externalStyle, listeners, attributes, onOpen },
     ref
 ) {
     const [editing, setEditing] = useState(false);
@@ -341,9 +343,18 @@ export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteC
                     />
                 ) : (
                     <p
+                        role={onOpen && !isTrash && !isDragOverlay ? "button" : undefined}
+                        tabIndex={onOpen && !isTrash && !isDragOverlay ? 0 : undefined}
+                        aria-label={onOpen ? `Открыть заметку: ${splitNoteContent(note.content).title}` : undefined}
+                        onKeyDown={(event) => {
+                            if (onOpen && !isTrash && !isDragOverlay && (event.key === "Enter" || event.key === " ")) {
+                                event.preventDefault(); onOpen(note.id);
+                            }
+                        }}
                         className={`text-sm leading-relaxed font-medium whitespace-pre-wrap break-words max-h-[250px] overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-black/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-black/20 ${!isTrash && !isDragOverlay ? "cursor-text" : ""}`}
                         onClick={() => {
                             if (!isTrash && !isDragOverlay) {
+                                if (onOpen) { onOpen(note.id); return; }
                                 setEditContent(note.content);
                                 setEditing(true);
                             }
@@ -354,7 +365,7 @@ export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteC
                         style={{ minHeight: "40px" }}
                     >
                         <LinkifiedText
-                            text={note.content}
+                            text={onOpen ? `${splitNoteContent(note.content).title}${notePreview(note.content) ? `\n\n${notePreview(note.content)}` : ""}` : note.content}
                             linkClassName="font-bold underline decoration-current/40 underline-offset-2"
                             linkStyle={{ color: textColor }}
                         />

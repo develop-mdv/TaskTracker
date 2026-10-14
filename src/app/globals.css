@@ -13,6 +13,48 @@ textarea {
   font: inherit;
 }
 
+/* The notes editor owns its document typography and interactive checklists. */
+.note-rich-text {
+  min-height: 260px;
+  color: #e2e8f0;
+  font-size: 16px;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+  outline: none;
+}
+.note-rich-text p { margin: 0.4em 0; }
+.note-rich-text:has(> p:only-child > br:only-child)::before {
+  content: attr(data-placeholder);
+  color: #475569;
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+.note-rich-text h1, .note-rich-text h2, .note-rich-text h3 {
+  margin: 1em 0 0.4em;
+  color: #f8fafc;
+  font-weight: 650;
+  line-height: 1.4;
+}
+.note-rich-text h1 { font-size: 1.7em; }
+.note-rich-text h2 { font-size: 1.3em; }
+.note-rich-text h3 { font-size: 1.1em; }
+.note-rich-text ul, .note-rich-text ol { padding-left: 1.5em; margin: 0.6em 0; }
+.note-rich-text ul { list-style: disc; }
+.note-rich-text ol { list-style: decimal; }
+.note-rich-text li::marker { color: #fbbf24; }
+.note-rich-text ul[data-type="taskList"] { list-style: none; padding-left: 0; }
+.note-rich-text ul[data-type="taskList"] > li { display: flex; align-items: flex-start; gap: 12px; }
+.note-rich-text ul[data-type="taskList"] > li > label { flex: none; margin-top: 9px; }
+.note-rich-text ul[data-type="taskList"] > li > div { flex: 1; min-width: 0; }
+.note-rich-text ul[data-type="taskList"] > li input { width: 20px; height: 20px; accent-color: #f59e0b; cursor: pointer; }
+.note-rich-text li[data-checked="true"] > div > p { text-decoration: line-through; color: #64748b; }
+.note-rich-text a { color: #fbbf24; text-decoration: underline; text-underline-offset: 3px; }
+.note-rich-text blockquote { border-left: 3px solid #475569; padding-left: 1em; color: #94a3b8; }
+.note-rich-text pre { overflow-x: auto; padding: 12px; border-radius: 8px; background: #020617; }
+.note-rich-text code { font-family: monospace; background: #1e293b; border-radius: 3px; padding: 1px 3px; }
+.note-rich-text hr { margin: 1.5em 0; border-color: #334155; }
+
 /* FullCalendar dark theme overrides */
 .calendar-wrapper .fc {
   --fc-border-color: rgba(51, 65, 85, 0.5);
