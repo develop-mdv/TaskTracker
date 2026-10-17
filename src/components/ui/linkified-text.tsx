@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 
 const URL_PATTERN = /((?:https?:\/\/|www\.)[^\s<]+)/gi;
+const MARKDOWN_OR_URL_PATTERN = /\[([^\]\r\n]+)\]\(((?:https?:\/\/|www\.)[^\s<]+?)\)|((?:https?:\/\/|www\.)[^\s<]+)/gi;
 const TRAILING_PUNCTUATION = /[.,!?;:)\]]+$/;
 
 type TextPart =
@@ -13,12 +14,14 @@ export function LinkifiedText({
     text,
     linkClassName,
     linkStyle,
+    parseMarkdownLinks = false,
 }: {
     text: string;
     linkClassName?: string;
     linkStyle?: CSSProperties;
+    parseMarkdownLinks?: boolean;
 }) {
-    const parts = linkify(text);
+    const parts = linkify(text, parseMarkdownLinks);
 
     return (
         <>
@@ -46,25 +49,32 @@ export function LinkifiedText({
     );
 }
 
-function linkify(text: string): TextPart[] {
+function linkify(text: string, parseMarkdownLinks: boolean): TextPart[] {
     const parts: TextPart[] = [];
     let lastIndex = 0;
 
-    for (const match of text.matchAll(URL_PATTERN)) {
+    const pattern = parseMarkdownLinks ? MARKDOWN_OR_URL_PATTERN : URL_PATTERN;
+    for (const match of text.matchAll(pattern)) {
         const rawValue = match[0];
+        const markdownUrl = parseMarkdownLinks && match[2];
         const index = match.index ?? 0;
 
         if (index > lastIndex) {
             parts.push({ type: "text", value: text.slice(lastIndex, index) });
         }
 
-        const trailing = rawValue.match(TRAILING_PUNCTUATION)?.[0] ?? "";
-        const value = trailing ? rawValue.slice(0, -trailing.length) : rawValue;
+        const trailing = markdownUrl
+            ? ""
+            : rawValue.match(TRAILING_PUNCTUATION)?.[0] ?? "";
+        const value = markdownUrl
+            ? match[1]
+            : trailing ? rawValue.slice(0, -trailing.length) : rawValue;
+        const url = markdownUrl || value;
 
         parts.push({
             type: "link",
             value,
-            href: value.startsWith("www.") ? `https://${value}` : value,
+            href: /^www\./i.test(url) ? `https://${url}` : url,
         });
 
         if (trailing) {

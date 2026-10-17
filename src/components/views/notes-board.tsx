@@ -27,7 +27,7 @@ export function NotesBoard({
   const [sort, setSort] = useState("updated");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileEditor, setMobileEditor] = useState(false);
-  const [board, setBoard] = useState(false);
+  const [board, setBoard] = useState(true);
   const editorRef = useRef<NoteEditorHandle>(null);
   const input =
     section === "inbox"
@@ -91,7 +91,7 @@ export function NotesBoard({
           </p>
         </div>
         <div className="flex rounded-lg bg-slate-800 p-0.5">
-          {[false, true].map((value) => (
+          {[true, false].map((value) => (
             <button
               key={String(value)}
               aria-pressed={board === value}

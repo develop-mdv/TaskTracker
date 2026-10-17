@@ -9,10 +9,13 @@ export function joinNoteContent(title: string, body: string) {
   return `${title}${body ? `\n${body}` : ""}`;
 }
 
-export function notePreview(content: string) {
-  return splitNoteContent(content)
+export function notePreview(
+  content: string,
+  { preserveLinks = false }: { preserveLinks?: boolean } = {},
+) {
+  const preview = splitNoteContent(content)
     .body.replace(/^\s*(?:#{1,3}\s|[-*]\s(?:\[[ xX]\]\s)?|\d+\.\s)/gm, "")
-    .replace(/\*\*/g, "")
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-    .trim();
+    .replace(/\*\*/g, "");
+  if (preserveLinks) return preview.trim();
+  return preview.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").trim();
 }

@@ -7,7 +7,11 @@ export function createNoteEditorExtensions() {
   return [
     StarterKit.configure({
       heading: { levels: [1, 2, 3] },
-      link: { openOnClick: false },
+      link: {
+        openOnClick: true,
+        defaultProtocol: "https",
+        HTMLAttributes: { target: "_blank", rel: "noopener noreferrer" },
+      },
     }),
     TaskList,
     TaskItem.configure({

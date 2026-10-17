@@ -158,6 +158,9 @@ export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteC
 
     const pinColor = PIN_COLORS[note.color] || "#6366F1";
     const textColor = TEXT_COLORS[note.color] || "#1E293B";
+    const noteTitle = splitNoteContent(note.content).title;
+    const previewBody = onOpen ? notePreview(note.content, { preserveLinks: true }) : "";
+    const displayContent = onOpen ? `${noteTitle}${previewBody ? `\n\n${previewBody}` : ""}` : note.content;
 
     const COLORS = ["#FEF08A", "#FECDD3", "#BAE6FD", "#BBF7D0", "#FED7AA", "#E9D5FF"];
 
@@ -345,8 +348,9 @@ export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteC
                     <p
                         role={onOpen && !isTrash && !isDragOverlay ? "button" : undefined}
                         tabIndex={onOpen && !isTrash && !isDragOverlay ? 0 : undefined}
-                        aria-label={onOpen ? `Открыть заметку: ${splitNoteContent(note.content).title}` : undefined}
+                        aria-label={onOpen ? `Открыть заметку: ${noteTitle}` : undefined}
                         onKeyDown={(event) => {
+                            if (event.target !== event.currentTarget) return;
                             if (onOpen && !isTrash && !isDragOverlay && (event.key === "Enter" || event.key === " ")) {
                                 event.preventDefault(); onOpen(note.id);
                             }
@@ -365,7 +369,8 @@ export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteC
                         style={{ minHeight: "40px" }}
                     >
                         <LinkifiedText
-                            text={onOpen ? `${splitNoteContent(note.content).title}${notePreview(note.content) ? `\n\n${notePreview(note.content)}` : ""}` : note.content}
+                            text={displayContent}
+                            parseMarkdownLinks
                             linkClassName="font-bold underline decoration-current/40 underline-offset-2"
                             linkStyle={{ color: textColor }}
                         />
