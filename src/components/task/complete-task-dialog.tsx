@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useModal } from "@/components/ui/use-modal";
 
 interface CompleteTaskDialogProps {
     taskTitle: string;
@@ -16,18 +17,22 @@ export function CompleteTaskDialog({
     onComplete,
 }: CompleteTaskDialogProps) {
     const [note, setNote] = useState("");
+    const [error, setError] = useState("");
     const [submittingResult, setSubmittingResult] = useState<"SUCCESS" | "FAILURE" | null>(null);
+    const modalRef = useModal(() => { if (!submittingResult) onClose(); }, isOpen);
 
     if (!isOpen) return null;
 
     const handleSubmit = async (result: "SUCCESS" | "FAILURE") => {
         if (submittingResult) return;
         setSubmittingResult(result);
+        setError("");
         try {
             await onComplete(result, note.trim() || undefined);
             setNote("");
             onClose();
         } catch (error) {
+            setError("Не удалось сохранить результат. Проверьте подключение и повторите попытку.");
             console.error("Failed to close task:", error);
             alert("Не удалось завершить задачу. Попробуйте еще раз.");
         } finally {
@@ -36,7 +41,7 @@ export function CompleteTaskDialog({
     };
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={(e) => { e.stopPropagation(); if (!submittingResult) onClose(); }}>
+        <div ref={modalRef} role="dialog" aria-modal="true" aria-label="Завершение задачи" className="app-overlay fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={(e) => { e.stopPropagation(); if (!submittingResult) onClose(); }}>
             <div
                 className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-xl overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
@@ -67,6 +72,7 @@ export function CompleteTaskDialog({
                     </div>
                 </div>
 
+                {error && <p role="alert" className="px-4 pb-3 text-sm text-red-400">{error}</p>}
                 <div className="p-4 bg-slate-900/30 flex flex-wrap justify-end gap-2">
                     <button
                         onClick={onClose}

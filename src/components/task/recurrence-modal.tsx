@@ -1,5 +1,7 @@
 "use client";
 
+import { useModal } from "@/components/ui/use-modal";
+
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
@@ -38,6 +40,7 @@ interface RecurrenceModalProps {
 
 export function RecurrenceModal({ onClose, editRuleId }: RecurrenceModalProps) {
     const utils = trpc.useUtils();
+    const modalRef = useModal(onClose);
     const { data: projects } = trpc.projects.list.useQuery();
     const { data: rules } = trpc.recurrence.list.useQuery();
 
@@ -117,7 +120,8 @@ export function RecurrenceModal({ onClose, editRuleId }: RecurrenceModalProps) {
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center sm:p-4"
+            ref={modalRef} role="dialog" aria-modal="true" aria-label="Регулярная задача"
+            className="app-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center sm:p-4"
             onClick={onClose}
         >
             <div
@@ -128,7 +132,7 @@ export function RecurrenceModal({ onClose, editRuleId }: RecurrenceModalProps) {
                     <h2 className="text-lg font-semibold text-white">
                         {editRuleId ? "Редактировать правило" : "Новая регулярная задача"}
                     </h2>
-                    <button onClick={onClose} className="text-slate-400 hover:text-white transition">
+                    <button aria-label="Закрыть" onClick={onClose} className="text-slate-400 hover:text-white transition">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -136,6 +140,7 @@ export function RecurrenceModal({ onClose, editRuleId }: RecurrenceModalProps) {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5 overflow-y-auto p-4 sm:p-6">
+                    {(createRule.error || updateRule.error) && <p role="alert" className="text-sm text-red-400">Не удалось сохранить правило. Проверьте подключение и повторите попытку.</p>}
                     {/* Title */}
                     <div>
                         <label className="block text-sm font-medium text-slate-300 mb-1.5">Название задачи</label>

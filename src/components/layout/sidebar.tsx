@@ -1,5 +1,7 @@
 "use client";
 
+import { useDragSensors } from "@/components/ui/use-drag-sensors";
+
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
@@ -7,12 +9,11 @@ import { useState, type FormEvent } from "react";
 import { CreateProjectModal } from "./create-project-modal";
 import { ProjectSettingsModal } from "./project-settings-modal";
 import { useSidebar } from "./sidebar-context";
+import { InstallAppButton } from "@/components/pwa/pwa-provider";
+import { useModal } from "@/components/ui/use-modal";
 import {
     DndContext,
     closestCenter,
-    PointerSensor,
-    useSensor,
-    useSensors,
     DragEndEvent,
     DragOverlay,
     DragStartEvent,
@@ -153,7 +154,7 @@ function SortableProjectItem({
                 <button
                     {...attributes}
                     {...listeners}
-                    className="p-1 ml-1 cursor-grab active:cursor-grabbing text-slate-600 hover:text-slate-400 opacity-0 group-hover:opacity-100 transition touch-none"
+                    className="p-1 ml-1 cursor-grab active:cursor-grabbing text-slate-600 hover:text-slate-400 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 transition touch-none"
                     tabIndex={-1}
                 >
                     <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
@@ -187,7 +188,7 @@ function SortableProjectItem({
                         e.stopPropagation();
                         onSettings();
                     }}
-                    className="p-2 opacity-0 group-hover:opacity-100 text-slate-500 hover:text-indigo-400 transition"
+                    className="p-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 text-slate-500 hover:text-indigo-400 transition"
                     title="Настройки"
                 >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -207,6 +208,7 @@ export function Sidebar() {
     const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
     const [showCompleted, setShowCompleted] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
+    const mobileMenuRef = useModal(() => setMobileOpen(false), mobileOpen);
     const [searchQuery, setSearchQuery] = useState("");
     const { collapsed, toggle } = useSidebar();
 
@@ -217,9 +219,7 @@ export function Sidebar() {
 
     const [activeId, setActiveId] = useState<string | null>(null);
 
-    const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
-    );
+    const sensors = useDragSensors();
 
     const handleDragStart = (event: DragStartEvent) => {
         setActiveId(event.active.id as string);
@@ -471,7 +471,7 @@ export function Sidebar() {
                                                             e.stopPropagation();
                                                             setEditingProjectId(project.id);
                                                         }}
-                                                        className="p-2 opacity-0 group-hover:opacity-100 text-slate-500 hover:text-indigo-400 transition"
+                                                        className="p-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 text-slate-500 hover:text-indigo-400 transition"
                                                         title="Настройки"
                                                     >
                                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -491,6 +491,7 @@ export function Sidebar() {
 
                 {/* Footer */}
                 <div className="p-3 border-t border-slate-700/50">
+                    <InstallAppButton compact={collapsed} />
                     <button
                         onClick={() => signOut({ callbackUrl: "/login" })}
                         className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-red-400 hover:bg-slate-800 transition ${collapsed ? "justify-center" : ""
@@ -504,7 +505,7 @@ export function Sidebar() {
                 </div>
             </aside>
 
-            <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-slate-800/80 bg-slate-950/95 px-3 backdrop-blur md:hidden">
+            <header className="mobile-header fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-slate-800/80 bg-slate-950/95 px-3 backdrop-blur md:hidden">
                 <button
                     onClick={() => navigate("/inbox")}
                     className="flex min-w-0 items-center gap-2 rounded-xl px-2 py-1.5 text-left transition active:bg-slate-900"
@@ -530,6 +531,8 @@ export function Sidebar() {
                         onClick={() => setMobileOpen(true)}
                         className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-300 transition hover:bg-slate-900 hover:text-white active:bg-slate-800"
                         aria-label="Открыть меню"
+                        aria-expanded={mobileOpen}
+                        aria-controls="mobile-menu"
                     >
                         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6h16M4 12h16M4 18h16" />
@@ -538,7 +541,7 @@ export function Sidebar() {
                 </div>
             </header>
 
-            <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-800/90 bg-slate-950/95 px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 backdrop-blur md:hidden">
+            <nav aria-label="Основная навигация" className="mobile-nav fixed inset-x-0 bottom-0 z-40 border-t border-slate-800/90 bg-slate-950/95 px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 backdrop-blur md:hidden">
                 <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
                     {MOBILE_NAV.map((section) => {
                         const isActive = pathname === section.href || pathname?.startsWith(section.href + "/");
@@ -573,7 +576,7 @@ export function Sidebar() {
             </nav>
 
             {mobileOpen && (
-                <div className="fixed inset-0 z-50 bg-black/55 backdrop-blur-sm md:hidden" onClick={() => setMobileOpen(false)}>
+                <div ref={mobileMenuRef} role="dialog" aria-modal="true" aria-label="Меню" id="mobile-menu" className="app-overlay mobile-menu fixed inset-0 z-50 bg-black/55 backdrop-blur-sm md:hidden" onClick={() => setMobileOpen(false)}>
                     <div
                         className="flex h-full w-[min(88vw,22rem)] flex-col border-r border-slate-700/60 bg-slate-900 shadow-2xl shadow-black/50"
                         onClick={(event) => event.stopPropagation()}
@@ -614,6 +617,7 @@ export function Sidebar() {
                         </div>
 
                         <div className="flex-1 overflow-y-auto px-3 py-4">
+                            <InstallAppButton />
                             <div className="space-y-1">
                                 {[...SECTIONS, SEARCH_SECTION].map((section) => {
                                     const isActive = pathname === section.href || pathname?.startsWith(section.href + "/");

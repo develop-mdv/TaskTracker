@@ -72,3 +72,4 @@ minio_data/
 
 # backups (if stored locally)
 backups/
+/docs/mobile-pwa/

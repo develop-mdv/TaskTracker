@@ -1,13 +1,12 @@
 "use client";
 
+import { useDragSensors } from "@/components/ui/use-drag-sensors";
+
 import { useState } from "react";
 import {
     DndContext,
     DragOverlay,
     closestCenter,
-    PointerSensor,
-    useSensor,
-    useSensors,
     DragStartEvent,
     DragEndEvent,
     useDroppable,
@@ -142,11 +141,7 @@ export function StickyNotesBoard({ projectId, section, title = "Доска за�
         onSuccess: () => utils.notes.list.invalidate(),
     });
 
-    const sensors = useSensors(
-        useSensor(PointerSensor, {
-            activationConstraint: { distance: 8 },
-        })
-    );
+    const sensors = useDragSensors();
 
     const visibleNotes = notes as Note[];
     const visibleTrashedNotes = trashedNotes as Note[];
@@ -405,7 +400,7 @@ export function StickyNotesBoard({ projectId, section, title = "Доска за�
                         sensors={sensors}
                         collisionDetection={closestCenter}
                         onDragStart={handleDragStart}
-                        onDragEnd={handleDragEnd}
+                        onDragEnd={handleDragEnd} onDragCancel={() => setActiveNote(null)}
                     >
                         {boardContent}
 

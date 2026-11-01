@@ -83,7 +83,7 @@ export function NotesBoard({
     "min-h-10 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-slate-800 hover:text-white";
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-slate-800 px-4 py-3 sm:px-6">
+      <div className={`${!board && mobileEditor && selected ? "hidden md:flex" : "flex"} shrink-0 flex-wrap items-center gap-3 border-b border-slate-800 px-4 py-3 sm:px-6`}>
         <div className="mr-auto">
           <h2 className="text-lg font-bold text-white">{title}</h2>
           <p className="text-xs text-slate-500">

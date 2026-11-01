@@ -192,7 +192,7 @@ export function SketchModal({
     "min-h-10 rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 transition hover:bg-slate-800 disabled:opacity-40";
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-2 backdrop-blur-sm sm:p-6"
+      className="app-overlay fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-2 backdrop-blur-sm sm:p-6"
       onClick={(e) => {
         e.stopPropagation();
         if (e.target === e.currentTarget) close();

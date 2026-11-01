@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { TaskDetailDrawer } from "@/components/task/task-detail-drawer";
 import { CreateTaskModal } from "@/components/task/create-task-modal";
@@ -40,6 +40,12 @@ type CalendarRange = {
 };
 
 export default function CalendarPage() {
+    const calendarRef = useRef<FullCalendar>(null);
+    useEffect(() => {
+        if (window.matchMedia("(max-width: 639px)").matches) {
+            calendarRef.current?.getApi().changeView("dayGridDay");
+        }
+    }, []);
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
     const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
     const [showCreate, setShowCreate] = useState(false);
@@ -167,6 +173,7 @@ export default function CalendarPage() {
 
             <div className="calendar-wrapper flex-1 overflow-auto p-3 sm:p-6">
                 <FullCalendar
+                    ref={calendarRef}
                     plugins={[dayGridPlugin, interactionPlugin]}
                     initialView="dayGridMonth"
                     locale={ruLocale}
@@ -181,10 +188,13 @@ export default function CalendarPage() {
                     headerToolbar={{
                         left: "prev,next today",
                         center: "title",
-                        right: "dayGridMonth,dayGridWeek",
+                        right: "dayGridMonth,dayGridWeek,dayGridDay",
                     }}
                     height="auto"
                     dayMaxEvents={4}
+                    longPressDelay={300}
+                    eventLongPressDelay={300}
+                    moreLinkClick="day"
                     eventDisplay="block"
                 />
             </div>

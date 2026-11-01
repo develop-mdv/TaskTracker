@@ -9,7 +9,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     return (
         <div className="min-h-dvh bg-slate-950">
             <Sidebar />
-            <main className={`h-dvh min-w-0 overflow-hidden pt-14 pb-20 transition-all duration-300 md:pb-0 md:pt-0 ${collapsed ? "md:ml-16" : "md:ml-64"}`}>
+            <main className={`dashboard-main h-dvh min-w-0 overflow-hidden pt-14 pb-20 transition-[margin] duration-300 md:pb-0 md:pt-0 ${collapsed ? "md:ml-16" : "md:ml-64"}`}>
                 {children}
             </main>
         </div>

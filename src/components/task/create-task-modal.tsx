@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { useModal } from "@/components/ui/use-modal";
 
 const PRIORITIES = [
     { value: 0, label: "Без приоритета", color: "text-slate-500" },
@@ -31,6 +32,7 @@ export function CreateTaskModal({
     const [priority, setPriority] = useState(0);
     const [dueDate, setDueDate] = useState(defaultDueDate || "");
     const utils = trpc.useUtils();
+    const modalRef = useModal(onClose);
 
     const createTask = trpc.tasks.create.useMutation({
         onSuccess: () => {
@@ -56,7 +58,8 @@ export function CreateTaskModal({
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-3 backdrop-blur-sm sm:items-center sm:p-4"
+            ref={modalRef} role="dialog" aria-modal="true" aria-label="Новая задача"
+            className="app-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-3 backdrop-blur-sm sm:items-center sm:p-4"
             onClick={onClose}
         >
             <div
@@ -66,9 +69,11 @@ export function CreateTaskModal({
                 <h2 className="text-lg font-semibold text-white mb-4">Новая задача</h2>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    {createTask.error && <p role="alert" className="text-sm text-red-400">Не удалось сохранить задачу. Проверьте подключение и повторите попытку.</p>}
                     <div>
                         <input
                             type="text"
+                            aria-label="Название задачи"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             autoFocus
@@ -79,6 +84,7 @@ export function CreateTaskModal({
 
                     <div>
                         <textarea
+                            aria-label="Описание задачи"
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             rows={3}
@@ -93,6 +99,7 @@ export function CreateTaskModal({
                                 Приоритет
                             </label>
                             <select
+                                aria-label="Приоритет"
                                 value={priority}
                                 onChange={(e) => setPriority(Number(e.target.value))}
                                 className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
@@ -111,6 +118,7 @@ export function CreateTaskModal({
                             </label>
                             <input
                                 type="date"
+                                aria-label="Дата задачи"
                                 value={dueDate}
                                 onChange={(e) => setDueDate(e.target.value)}
                                 className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"

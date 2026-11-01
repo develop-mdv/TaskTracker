@@ -8,6 +8,7 @@ import { CompleteTaskDialog } from "./complete-task-dialog";
 import { getBrowserTimeZone, toDateInputValue } from "@/lib/timezone";
 import { SketchModal } from "@/components/notes/sketch-modal";
 import { uploadAttachment } from "@/lib/attachments-client";
+import { useModal } from "@/components/ui/use-modal";
 
 const PRIORITIES = [
     { value: 0, label: "Без приоритета" },
@@ -118,7 +119,8 @@ function AttachmentPreviewModal({
 
     return (
         <div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+            role="dialog" aria-modal="true" aria-label="Просмотр вложения"
+            className="app-overlay fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
             onClick={onClose}
         >
             <div
@@ -204,7 +206,13 @@ interface TaskDetailDrawerProps {
 export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
     const utils = trpc.useUtils();
     const { data: task, isLoading } = trpc.tasks.getById.useQuery({ id: taskId });
+    const modalRef = useModal(onClose, !!task);
     const { data: projects } = trpc.projects.list.useQuery();
+    const { data: columns = [] } = trpc.columns.list.useQuery({
+        projectId: task?.projectId || undefined,
+        section: task?.projectId ? undefined : task?.section || "inbox",
+    }, { enabled: !!task });
+    const { data: project } = trpc.projects.getById.useQuery({ id: task?.projectId ?? "" }, { enabled: !!task?.projectId });
 
     const updateTask = trpc.tasks.update.useMutation({
         onSuccess: () => {
@@ -260,7 +268,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
 
     if (isLoading) {
         return (
-            <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-sm" onClick={onClose}>
+            <div className="app-overlay fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-sm" onClick={onClose}>
                 <div className="h-full w-full animate-pulse bg-slate-900 sm:max-w-xl" />
             </div>
         );
@@ -336,11 +344,12 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
 
     return (
         <div
-            className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-sm"
+            ref={modalRef} role="dialog" aria-modal="true" aria-label="Задача"
+            className="app-overlay task-overlay fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-sm"
             onClick={onClose}
         >
             <div
-                className="h-full w-full overflow-y-auto bg-slate-900 sm:max-w-xl sm:border-l sm:border-slate-700/50"
+                className="task-drawer h-full w-full overflow-y-auto bg-slate-900 sm:max-w-xl sm:border-l sm:border-slate-700/50"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -392,6 +401,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                 </div>
 
                 <div className="space-y-5 p-4 sm:space-y-6 sm:p-6">
+                    {updateTask.error && <p role="alert" className="rounded-lg bg-red-500/10 p-3 text-sm text-red-400">Изменение не сохранено. Проверьте подключение и повторите действие.</p>}
                     {/* Title */}
                     <div>
                         {editTitle !== null ? (
@@ -399,15 +409,16 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                 type="text"
                                 value={editTitle}
                                 onChange={(e) => setEditTitle(e.target.value)}
-                                onBlur={() => {
+                                onBlur={async () => {
                                     if (editTitle.trim() && editTitle !== task.title) {
-                                        updateTask.mutate({ id: task.id, title: editTitle.trim() });
+                                        try { await updateTask.mutateAsync({ id: task.id, title: editTitle.trim() }); }
+                                        catch { return; }
                                     }
-                                    setEditTitle(null);
+                                    setEditTitle((current) => current === editTitle ? null : current);
                                 }}
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                                    if (e.key === "Escape") setEditTitle(null);
+                                    if (e.key === "Escape") { e.stopPropagation(); setEditTitle(null); }
                                 }}
                                 autoFocus
                                 className="w-full border-b-2 border-indigo-500 bg-transparent pb-1 text-lg font-semibold text-white outline-none sm:text-xl"
@@ -431,11 +442,12 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                             <textarea
                                 value={editDescription}
                                 onChange={(e) => setEditDescription(e.target.value)}
-                                onBlur={() => {
+                                onBlur={async () => {
                                     if (editDescription !== (task.description ?? "")) {
-                                        updateTask.mutate({ id: task.id, description: editDescription || null });
+                                        try { await updateTask.mutateAsync({ id: task.id, description: editDescription || null }); }
+                                        catch { return; }
                                     }
-                                    setEditDescription(null);
+                                    setEditDescription((current) => current === editDescription ? null : current);
                                 }}
                                 onPaste={(e) => {
                                     if (e.clipboardData.files && e.clipboardData.files.length > 0) {
@@ -475,15 +487,16 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                 <textarea
                                     value={editCompletionNote}
                                     onChange={(e) => setEditCompletionNote(e.target.value)}
-                                    onBlur={() => {
+                                    onBlur={async () => {
                                         const nextNote = editCompletionNote.trim();
                                         if (nextNote !== completionNote) {
-                                            updateTask.mutate({ id: task.id, completionNote: nextNote || null });
+                                            try { await updateTask.mutateAsync({ id: task.id, completionNote: nextNote || null }); }
+                                            catch { return; }
                                         }
-                                        setEditCompletionNote(null);
+                                        setEditCompletionNote((current) => current === editCompletionNote ? null : current);
                                     }}
                                     onKeyDown={(e) => {
-                                        if (e.key === "Escape") setEditCompletionNote(null);
+                                        if (e.key === "Escape") { e.stopPropagation(); setEditCompletionNote(null); }
                                         if (e.key === "Enter" && e.ctrlKey) {
                                             (e.target as HTMLTextAreaElement).blur();
                                         }
@@ -514,6 +527,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                 Приоритет
                             </label>
                             <select
+                                aria-label="Приоритет"
                                 value={task.priority}
                                 onChange={(e) =>
                                     updateTask.mutate({ id: task.id, priority: Number(e.target.value) })
@@ -531,12 +545,15 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                 Проект
                             </label>
                             <select
+                                aria-label="Проект"
                                 value={task.projectId ?? ""}
                                 onChange={(e) =>
                                     updateTask.mutate({
                                         id: task.id,
                                         projectId: e.target.value || null,
                                         section: e.target.value ? null : "inbox",
+                                        projectSectionId: null,
+                                        boardColumnId: null,
                                     })
                                 }
                                 className="w-full mt-1 px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
@@ -554,6 +571,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                             </label>
                             <input
                                 type="date"
+                                aria-label="Дедлайн"
                                 value={toDateInputValue(task.dueDate, timezone)}
                                 onChange={(e) =>
                                     updateTask.mutate({ id: task.id, dueDate: e.target.value || null })
@@ -564,12 +582,30 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <label className="text-xs font-medium text-slate-500">
+                            Статус / колонка
+                            <select aria-label="Статус / колонка" value={task.boardColumnId ?? ""} disabled={updateTask.isPending} onChange={(event) => updateTask.mutate({ id: task.id, boardColumnId: event.target.value || null })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-700/50 bg-slate-800/50 px-3 py-2 text-sm text-white">
+                                <option value="">Без колонки</option>
+                                {columns.map((column) => <option key={column.id} value={column.id}>{column.name}</option>)}
+                            </select>
+                        </label>
+                        {!!project?.sections?.length && <label className="text-xs font-medium text-slate-500">
+                            Секция проекта
+                            <select aria-label="Секция проекта" value={task.projectSectionId ?? ""} disabled={updateTask.isPending} onChange={(event) => updateTask.mutate({ id: task.id, projectSectionId: event.target.value || null })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-700/50 bg-slate-800/50 px-3 py-2 text-sm text-white">
+                                <option value="">Без секции</option>
+                                {project.sections.map((section) => <option key={section.id} value={section.id}>{section.name}</option>)}
+                            </select>
+                        </label>}
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
                             <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">
                                 Дата начала
                             </label>
                             <input
                                 type="date"
+                                aria-label="Дата начала"
                                 value={toDateInputValue(task.startDate, timezone)}
                                 onChange={(e) =>
                                     updateTask.mutate({ id: task.id, startDate: e.target.value || null })
@@ -584,6 +620,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                             </label>
                             <input
                                 type="date"
+                                aria-label="Дата окончания"
                                 value={toDateInputValue(task.endDate, timezone)}
                                 onChange={(e) =>
                                     updateTask.mutate({ id: task.id, endDate: e.target.value || null })
@@ -657,7 +694,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
                                                             <FileTypeIcon mimeType={att.mimeType} className="w-8 h-8" />
                                                         </div>
                                                     )}
-                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100">
                                                         <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
                                                         </svg>

@@ -73,13 +73,14 @@ export const TaskCard = memo(function TaskCard({
     return (
         <div
             className={`group cursor-pointer rounded-lg border border-slate-700/30 bg-slate-800/50 p-3 transition-all hover:border-slate-600/50 active:border-indigo-500/40 active:bg-slate-800/70 ${isDragging ? "opacity-50 shadow-2xl rotate-2 scale-105" : ""
-                } ${isCompleted ? "opacity-60" : ""}`}
+                } ${isCompleted ? "opacity-80" : ""}`}
             onClick={onClick}
         >
             <div className="flex items-start gap-2.5 sm:gap-3">
                 {/* Checkbox */}
                 {!isDeleted && (
                     <button
+                        aria-label={isCompleted ? "Вернуть задачу в работу" : "Завершить задачу"}
                         onClick={(e) => {
                             e.stopPropagation();
                             if (isCompleted) {
@@ -107,7 +108,7 @@ export const TaskCard = memo(function TaskCard({
 
                 <div className="flex-1 min-w-0">
                     <div className="relative flex min-w-0 items-start gap-2">
-                        <span className={`min-w-0 flex-1 break-words text-[15px] font-medium leading-snug sm:text-sm ${isCompleted ? "line-through text-slate-500" : "text-white"}`}>
+                        <span className={`min-w-0 flex-1 break-words text-[15px] font-medium leading-snug sm:text-sm ${isCompleted ? "line-through text-slate-400" : "text-white"}`}>
                             {task.title}
                         </span>
                         {task.priority > 0 && (

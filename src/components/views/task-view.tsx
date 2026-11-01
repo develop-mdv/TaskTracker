@@ -51,7 +51,7 @@ export function TaskView({
     const serverViewMode = (viewPref as { viewMode: string } | undefined)?.viewMode ?? "list";
     const viewMode = localViewMode ?? serverViewMode;
 
-    const { data: tasks = [], isLoading: tasksLoading } = trpc.tasks.list.useQuery({
+    const { data: tasks = [], isLoading: tasksLoading, isError: tasksError, refetch } = trpc.tasks.list.useQuery({
         section: section as "inbox" | undefined,
         projectId: projectId || undefined,
         today,
@@ -87,7 +87,7 @@ export function TaskView({
     };
 
     return (
-        <div className="h-full flex flex-col">
+        <div className="h-full min-h-0 flex flex-col">
             {/* Header */}
             {!hideHeader && (
             <div className="flex flex-col items-stretch justify-between gap-3 border-b border-slate-700/50 px-4 py-3 sm:flex-row sm:items-center sm:px-6 sm:py-4">
@@ -146,10 +146,16 @@ export function TaskView({
             )}
 
             {/* Content */}
-            <div className="flex-1 overflow-auto p-4 sm:p-6">
+            {viewMode === "kanban" && !archived && !deleted && <p className="shrink-0 px-4 pt-2 text-xs text-slate-500 md:hidden">Листайте колонки вбок. Для переноса удерживайте задачу.</p>}
+            <div className="min-h-0 flex-1 overflow-auto p-4 sm:p-6">
                 {tasksLoading ? (
                     <div className="flex items-center justify-center py-12">
                         <div className="animate-spin h-8 w-8 border-2 border-indigo-500 border-t-transparent rounded-full" />
+                    </div>
+                ) : tasksError ? (
+                    <div role="alert" className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-slate-300">
+                        <p>Не удалось загрузить задачи. Проверьте подключение к сети.</p>
+                        <button onClick={() => void refetch()} className="mt-3 min-h-11 rounded-lg bg-slate-800 px-4 text-indigo-300">Повторить</button>
                     </div>
                 ) : viewMode === "kanban" && !archived && !deleted ? (
                     <KanbanBoard

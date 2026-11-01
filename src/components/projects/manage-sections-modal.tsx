@@ -1,20 +1,19 @@
 "use client";
 
+import { useModal } from "@/components/ui/use-modal";
+
+import { useDragSensors } from "@/components/ui/use-drag-sensors";
+
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import {
     DndContext,
     closestCenter,
-    KeyboardSensor,
-    PointerSensor,
-    useSensor,
-    useSensors,
     DragEndEvent,
 } from "@dnd-kit/core";
 import {
     arrayMove,
     SortableContext,
-    sortableKeyboardCoordinates,
     verticalListSortingStrategy,
     useSortable,
 } from "@dnd-kit/sortable";
@@ -34,6 +33,7 @@ interface Section {
 export function ManageSectionsModal({ projectId, onClose }: ManageSectionsModalProps) {
     const [newSectionName, setNewSectionName] = useState("");
     const utils = trpc.useUtils();
+    const modalRef = useModal(onClose);
 
     const { data: project } = trpc.projects.getById.useQuery({ id: projectId });
     // Cast to any to access sections until types are updated
@@ -79,22 +79,17 @@ export function ManageSectionsModal({ projectId, onClose }: ManageSectionsModalP
         });
     };
 
-    const sensors = useSensors(
-        useSensor(PointerSensor),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
-    );
+    const sensors = useDragSensors();
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
+        <div ref={modalRef} role="dialog" aria-modal="true" aria-label="Управление секциями" className="app-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
             <div
                 className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-900 shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
                     <h2 className="text-lg font-semibold text-white">Управление секциями</h2>
-                    <button onClick={onClose} className="text-slate-400 hover:text-white transition">
+                    <button aria-label="Закрыть" onClick={onClose} className="text-slate-400 hover:text-white transition">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -200,7 +195,8 @@ function SortableSectionItem({
             <button
                 {...attributes}
                 {...listeners}
-                className="cursor-grab active:cursor-grabbing text-slate-600 hover:text-slate-400"
+                className="touch-none cursor-grab active:cursor-grabbing text-slate-600 hover:text-slate-400"
+                aria-label={`Переместить секцию ${section.name}`}
             >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
@@ -234,7 +230,7 @@ function SortableSectionItem({
 
             <button
                 onClick={onDelete}
-                className="text-slate-600 hover:text-red-400 transition opacity-0 group-hover:opacity-100"
+                className="text-slate-600 hover:text-red-400 transition opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
                 title="Удалить"
             >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -1,5 +1,7 @@
 "use client";
 
+import { useModal } from "@/components/ui/use-modal";
+
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { formatTasksToText, downloadAsFile } from "@/lib/export-utils";
@@ -95,12 +97,14 @@ export function ProjectSettingsModal({ projectId, onClose }: ProjectSettingsModa
         }
     };
 
+    const modalRef = useModal(onClose, !isLoading);
+
     if (isLoading) return null;
 
     const isCompleted = !!(project as any)?.completedAt;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center sm:p-4">
+        <div ref={modalRef} role="dialog" aria-modal="true" aria-label="Настройки проекта" className="app-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center sm:p-4">
             <div
                 className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-900 shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
@@ -108,7 +112,7 @@ export function ProjectSettingsModal({ projectId, onClose }: ProjectSettingsModa
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
                     <h2 className="text-lg font-semibold text-white">Настройки проекта</h2>
-                    <button onClick={onClose} className="text-slate-400 hover:text-white transition">
+                    <button aria-label="Закрыть" onClick={onClose} className="text-slate-400 hover:text-white transition">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -162,7 +166,8 @@ export function ProjectSettingsModal({ projectId, onClose }: ProjectSettingsModa
                                 </label>
                                 <input
                                     type="text"
-                                    value={name}
+                                    aria-label="Название проекта"
+                            value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition"
                                 />
@@ -180,7 +185,9 @@ export function ProjectSettingsModal({ projectId, onClose }: ProjectSettingsModa
                                             }}
                                             className={`w-8 h-8 rounded-full transition-all ${color === c ? "ring-2 ring-white scale-110" : "hover:scale-110 opacity-70 hover:opacity-100"
                                                 }`}
-                                            style={{ backgroundColor: c }}
+                                            aria-label={`Цвет ${c}`}
+                                    aria-pressed={color === c}
+                                    style={{ backgroundColor: c }}
                                         />
                                     ))}
                                 </div>

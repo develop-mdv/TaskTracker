@@ -1,13 +1,12 @@
 "use client";
 
+import { useDragSensors } from "@/components/ui/use-drag-sensors";
+
 import { useState, memo } from "react";
 import {
     DndContext,
     DragOverlay,
     closestCenter,
-    PointerSensor,
-    useSensor,
-    useSensors,
     DragStartEvent,
     DragEndEvent,
     DragOverEvent,
@@ -73,7 +72,7 @@ const SortableTaskItem = memo(function SortableTaskItem({
     };
 
     return (
-        <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+        <div ref={setNodeRef} style={style} className="touch-manipulation" {...attributes} {...listeners}>
             {isOver && !isDragging && (
                 <div className="h-0.5 bg-indigo-500 rounded-full mx-2 mb-1 shadow-[0_0_8px_rgba(99,102,241,0.6)] animate-pulse" />
             )}
@@ -91,11 +90,7 @@ export function ListView({ tasks, projectSections = [] }: { tasks: Task[]; proje
         onSuccess: () => utils.tasks.list.invalidate(),
     });
 
-    const sensors = useSensors(
-        useSensor(PointerSensor, {
-            activationConstraint: { distance: 5 },
-        })
-    );
+    const sensors = useDragSensors();
 
     // Group tasks (memoize if needed, but simple filtering is cheap for small lists)
     const hasSections = projectSections.length > 0;
@@ -214,7 +209,7 @@ export function ListView({ tasks, projectSections = [] }: { tasks: Task[]; proje
     if (!hasSections) {
         // Flat list behavior (legacy) with SortableContext
         return (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setActiveTask(null)}>
                 <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
                     <div className="space-y-2">
                         {tasks.map(task => <SortableTaskItem key={task.id} task={task} onSelect={setSelectedTaskId} />)}
@@ -240,7 +235,7 @@ export function ListView({ tasks, projectSections = [] }: { tasks: Task[]; proje
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
+                onDragEnd={handleDragEnd} onDragCancel={() => setActiveTask(null)}
             >
                 <div className="space-y-5 pb-6 sm:space-y-8 sm:pb-10">
                     {sectionsToRender.map(section => {

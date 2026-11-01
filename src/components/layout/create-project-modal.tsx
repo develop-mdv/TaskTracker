@@ -1,5 +1,7 @@
 "use client";
 
+import { useModal } from "@/components/ui/use-modal";
+
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 
@@ -13,6 +15,7 @@ export function CreateProjectModal({ onClose }: { onClose: () => void }) {
     const [name, setName] = useState("");
     const [color, setColor] = useState(COLORS[0]);
     const utils = trpc.useUtils();
+    const modalRef = useModal(onClose);
 
     const createProject = trpc.projects.create.useMutation({
         onSuccess: () => {
@@ -28,7 +31,7 @@ export function CreateProjectModal({ onClose }: { onClose: () => void }) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-3 backdrop-blur-sm sm:items-center sm:p-4">
+        <div ref={modalRef} role="dialog" aria-modal="true" aria-label="Новый проект" className="app-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-3 backdrop-blur-sm sm:items-center sm:p-4">
             <div
                 className="w-full max-w-md rounded-2xl border border-slate-700/50 bg-slate-800 p-4 shadow-2xl sm:p-6"
                 onClick={(e) => e.stopPropagation()}
@@ -36,12 +39,14 @@ export function CreateProjectModal({ onClose }: { onClose: () => void }) {
                 <h2 className="text-lg font-semibold text-white mb-4">Новый проект</h2>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    {createProject.error && <p role="alert" className="text-sm text-red-400">Не удалось создать проект. Проверьте подключение и повторите попытку.</p>}
                     <div>
                         <label className="block text-sm font-medium text-slate-300 mb-1.5">
                             Название
                         </label>
                         <input
                             type="text"
+                            aria-label="Название проекта"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             autoFocus
@@ -64,6 +69,8 @@ export function CreateProjectModal({ onClose }: { onClose: () => void }) {
                                             ? "ring-2 ring-white ring-offset-2 ring-offset-slate-800 scale-110"
                                             : "hover:scale-105"
                                         }`}
+                                    aria-label={`Цвет ${c}`}
+                                    aria-pressed={color === c}
                                     style={{ backgroundColor: c }}
                                 />
                             ))}

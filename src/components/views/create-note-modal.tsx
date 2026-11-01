@@ -107,11 +107,11 @@ export function CreateNoteModal({
               close();
           }
         }}
-        className="m-auto max-h-[90dvh] w-[calc(100%_-_24px)] max-w-2xl overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 p-0 text-slate-200 shadow-2xl backdrop:bg-black/70 backdrop:backdrop-blur-sm"
+        className="note-create-dialog m-auto max-h-[90dvh] w-[calc(100%_-_24px)] max-w-2xl overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 p-0 text-slate-200 shadow-2xl backdrop:bg-black/70 backdrop:backdrop-blur-sm"
       >
         <form
           onSubmit={(e) => void submit(e)}
-          className="flex max-h-[90dvh] flex-col"
+          className="flex max-h-[min(90dvh,calc(var(--app-height)-24px))] flex-col"
         >
           <header className="flex shrink-0 items-center justify-between border-b border-slate-800 px-5 py-3">
             <h2 id="new-note-title" className="font-semibold text-white">
@@ -227,7 +227,7 @@ export function CreateNoteModal({
             )}
           </div>
           <footer className="flex shrink-0 items-center justify-between border-t border-slate-800 px-5 py-3">
-            <span className="text-xs text-slate-600">
+            <span className="hidden text-xs text-slate-600 sm:block">
               После создания — автосохранение
             </span>
             <button

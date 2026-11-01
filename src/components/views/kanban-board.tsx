@@ -1,5 +1,7 @@
 "use client";
 
+import { useDragSensors } from "@/components/ui/use-drag-sensors";
+
 import { useState, useMemo, useCallback, memo, useEffect } from "react";
 import { formatTasksToText, copyToClipboard, downloadAsFile } from "@/lib/export-utils";
 import {
@@ -7,9 +9,6 @@ import {
     DragOverlay,
     closestCenter,
     rectIntersection,
-    PointerSensor,
-    useSensor,
-    useSensors,
     DragStartEvent,
     DragEndEvent,
     DragOverEvent,
@@ -133,7 +132,7 @@ const SortableTaskItem = memo(function SortableTaskItem({
     };
 
     return (
-        <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+        <div ref={setNodeRef} style={style} className="touch-manipulation" {...attributes} {...listeners}>
             {/* Drop indicator line above */}
             {isOver && (
                 <div className="h-0.5 bg-indigo-500 rounded-full mx-1 mb-1 shadow-[0_0_8px_rgba(99,102,241,0.6)] animate-pulse" />
@@ -154,7 +153,7 @@ const ColumnHeader = ({ title, color, count, onDelete, onEdit, onAdd, onCopy, on
                 {dragHandleProps && (
                     <button
                         {...dragHandleProps}
-                        className="cursor-grab active:cursor-grabbing p-0.5 rounded text-slate-600 hover:text-slate-400 transition"
+                        className="touch-none cursor-grab active:cursor-grabbing p-0.5 rounded text-slate-600 hover:text-slate-400 transition"
                         title="Перетащить колонку"
                     >
                         <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -443,9 +442,7 @@ export function KanbanBoard({
         },
     });
 
-    const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
-    );
+    const sensors = useDragSensors();
 
     const columnIds = useMemo(() => columns.map((c) => `col-${c.id}`), [columns]);
 
@@ -909,6 +906,7 @@ export function KanbanBoard({
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
+            onDragCancel={() => { setActiveId(null); setActiveType(null); setOverContainerId(null); }}
         >
 
             {renderContent()}
@@ -946,7 +944,7 @@ export function KanbanBoard({
 function SortableItem({ id, children }: { id: string, children: React.ReactNode }) {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id, data: { type: "column" } });
     const style = { transform: CSS.Translate.toString(transform), transition };
-    return <div ref={setNodeRef} style={style} {...attributes} {...listeners}>{children}</div>;
+    return <div ref={setNodeRef} style={style} className="touch-manipulation" {...attributes} {...listeners}>{children}</div>;
 }
 
 const defaultDropAnimation = {
@@ -969,7 +967,7 @@ function QuickCreateInColumn({
     const [title, setTitle] = useState("");
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+        <div className="app-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
             <div className="bg-slate-800 border border-slate-700/50 rounded-xl p-4 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
                 <input
                     type="text"

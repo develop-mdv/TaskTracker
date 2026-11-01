@@ -232,7 +232,7 @@ export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteC
                     {/* Color picker */}
                     <div className="px-3 py-2">
                         <p className="text-xs text-slate-400 mb-2">Цвет</p>
-                        <div className="flex gap-1.5">
+                        <div className="flex flex-wrap gap-1.5">
                             {COLORS.map((c) => (
                                 <button
                                     key={c}
