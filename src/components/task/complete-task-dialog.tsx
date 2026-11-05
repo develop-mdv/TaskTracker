@@ -41,7 +41,19 @@ export function CompleteTaskDialog({
     };
 
     return (
-        <div ref={modalRef} role="dialog" aria-modal="true" aria-label="Завершение задачи" className="app-overlay fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={(e) => { e.stopPropagation(); if (!submittingResult) onClose(); }}>
+        <div
+            ref={modalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Завершение задачи"
+            className="app-overlay fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={(e) => { e.stopPropagation(); if (!submittingResult) onClose(); }}
+            onKeyDown={(e) => {
+                // Keep dialog input away from the parent card's drag sensor.
+                // Escape and Tab must still reach useModal's document listener.
+                if (e.key !== "Escape" && e.key !== "Tab") e.stopPropagation();
+            }}
+        >
             <div
                 className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-xl overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
@@ -61,6 +73,7 @@ export function CompleteTaskDialog({
                             onChange={(e) => setNote(e.target.value)}
                             onKeyDown={(e) => {
                                 if (e.key === "Enter" && e.ctrlKey) {
+                                    e.preventDefault();
                                     handleSubmit("SUCCESS");
                                 }
                             }}
